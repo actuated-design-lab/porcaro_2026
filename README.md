@@ -1,116 +1,201 @@
 # Porcaro 2026: Embodied AI Dual-Arm Drumming Project
 
 This repository contains the official implementation of the paper:
-*"Embodied Drumming: Sim-to-Real Reinforcement Learning for Pneumatic Musculoskeletal Robots via Generalized Rhythm Modeling"* (Submitted to IROS 2026).
+*"Embodied Drumming: Sim-to-Real Reinforcement Learning for Pneumatic Musculoskeletal Robots via Generalized Rhythm Modeling"* 
 
 This project simulates and trains **Porcaro**, a drumming robot driven by Pneumatic Artificial Muscles (PAMs), utilizing the highly parallelized **NVIDIA Isaac Lab** environment (Direct Workflow).
+
+---
 
 ## 📁 Repository Structure
 
 ```text
 porcaro_2026/
- ├── scripts/                         # Execution scripts for training and inference
- │   ├── rsl_rl/                      
- │   │   ├── train.py                 # Main training script
- │   │   └── play.py                  # Inference and visualization script
+ ├── scripts/                              # Execution scripts for training and inference
+ │   ├── list_envs.py                      # List all registered environments
+ │   ├── random_agent.py                   # Random action agent
+ │   ├── zero_agent.py                     # Zero action agent
+ │   └── rsl_rl/
+ │       ├── train.py                      # Main training script
+ │       ├── play.py                       # Inference and visualization script
+ │       ├── play_sim_midi.py              # MIDI-driven simulation playback
+ │       ├── play_sim_rhythm.py            # Rhythm-driven simulation playback
+ │       └── cli_args.py                   # Shared CLI argument definitions
  ├── source/
- │   └── porcaro_2026/                # Core extension package
- │       ├── config/                  # Extension configuration (extension.toml)
+ │   └── porcaro_2026/                     # Core extension package
+ │       ├── config/
+ │       │   └── extension.toml            # Extension configuration
+ │       ├── docs/
+ │       │   └── CHANGELOG.rst
  │       └── porcaro_2026/
- │           ├── assets/              # ⚠️ MUST CONTAIN: porcaro.usd, sneadrum.usd, drum.usd
- |           ├── data/                # ⚠️ MUST CONTAIN: pam_force_map.csvdatasets
- │           ├── tasks/direct/porcaro_2026/
- │               ├── porcaro_2026_env.py      # Main DirectRLEnv definition
- │               ├── porcaro_2026_env_cfg.py  # Environment configuration (Model B, DR)
- │               ├── rhythm_generator.py      # Target force & rhythm generation logic
- │               ├── actions/         # PAM dynamics & delayed action controllers (Model B)
- │               ├── agents/          # RSL-RL hyperparameters (PPO configs)
- │               ├── cfg/             # Assets, sensors, controller, and rewards parameters
- │               ├── logging/         # Datalogger managers for Sim-to-Real analysis
- │               └── rewards/         # Event-based rhythm reward functions
- ├── pyproject.toml                   # Python package dependencies
+ │           └── tasks/direct/porcaro_2026/
+ │               ├── __init__.py           # Imports user0, user1 submodules
+ │               ├── common/              # Shared modules across all users
+ │               │   └── actions/
+ │               │       ├── base.py
+ │               │       ├── pam.py
+ │               │       ├── pneumatic.py
+ │               │       └── torque.py
+ │               ├── user0/               # User 0 implementation
+ │               │   ├── __init__.py      # gym.register for user0 tasks
+ │               │   ├── porcaro_2026_env.py
+ │               │   ├── porcaro_2026_env_cfg.py
+ │               │   ├── rhythm_generator.py
+ │               │   ├── agents/          # RSL-RL PPO configs
+ │               │   │   ├── rsl_rl_ppo_cfg.py
+ │               │   │   ├── rsl_rl_ppo_lstm_cfg.py
+ │               │   │   └── rsl_rl_ppo_mlp_cfg.py
+ │               │   ├── cfg/             # Assets, sensors, controller, rewards params
+ │               │   │   ├── actuator_cfg.py
+ │               │   │   ├── assets.py
+ │               │   │   ├── controller_cfg.py
+ │               │   │   ├── logging_cfg.py
+ │               │   │   ├── rewards_cfg.py
+ │               │   │   └── sensors.py
+ │               │   ├── logging/         # Datalogger for Sim-to-Real analysis
+ │               │   │   ├── datalogger.py
+ │               │   │   └── logging_manager.py
+ │               │   └── rewards/
+ │               │       └── reward.py
+ │               └── user1/               # User 1 implementation (same structure as user0)
+ │                   ├── __init__.py      # gym.register for user1 tasks
+ │                   └── ...
+ ├── environment.yml
+ ├── pyproject.toml
+ ├── setup.py
  └── README.md
 ```
 
+---
 
 ## 🛠️ Requirements & Installation
-We recommend using Miniconda to manage your Python environment. By following these steps, you can set up the environment exactly as it was used in our experiments.
 
-**0. Setup a Miniconda**
+We recommend using Miniconda to manage your Python environment.
+
+### 0. Setup Miniconda
+
 ```bash
-# 1. Create a directory for installation
 mkdir -p ~/miniconda3
-
-# 2. Download the installer for Linux (using wget)
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda3/miniconda.sh
-
-# 3. Run the installation in silent mode.
 bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
-
-# 4. Remove unnecessary installers
 rm ~/miniconda3/miniconda.sh
-
-# 5. Initialization settings to associate the conda command with a shell (for bash)
 ~/miniconda3/bin/conda init bash
 ```
 
-**1. Create a Miniconda Environment**
+### 1. Create a Conda Environment
+
 ```bash
 conda create -n porcaro_env python=3.10
 conda activate porcaro_env
 ```
-**2. Install NVIDIA Isaac Lab**
 
-This project is built as an extension for NVIDIA Isaac Lab. You must install the core Isaac Lab framework first.
-Please follow the Official Isaac Lab Installation Guide.
+### 2. Install NVIDIA Isaac Lab
 
-(Note: Ensure Isaac Lab is installed in your porcaro_env conda environment).
+This project is built as an extension for NVIDIA Isaac Lab. Please follow the [Official Isaac Lab Installation Guide](https://isaac-sim.github.io/IsaacLab/) and ensure Isaac Lab is installed inside your `porcaro_env` conda environment.
 
-**3. Install the Porcaro 2026 Repository**
+### 3. Install the Porcaro 2026 Package
 
-Once Isaac Lab is successfully installed, clone this repository and install it as an editable python package.
+Clone this repository and install it as an editable Python package:
+
 ```bash
-# Clone the repository
-git clone [https://github.com/Tsukasa-B/porcaro_2026.git](https://github.com/Tsukasa-B/porcaro_2026.git)
+git clone https://github.com/actuated-design-lab/porcaro_2026.git
 cd porcaro_2026
 
-# Install the extension into your Isaac Lab environment
-# (Replace the path below with your actual Isaac Lab path)
-/path/to/IsaacLab/isaaclab.sh -p -m pip install -e source/porcaro_2026
+python -m pip install -e source/porcaro_2026
 ```
 
-*That's it! The environment is now fully linked and ready to run.*
+### 4. Verify Installation
 
-## 🎮 Usage
-You can launch the training and evaluation scripts directly from the terminal. We use rsl_rl for highly optimized Proximal Policy Optimization (PPO).
+After installation, confirm that all task environments are registered correctly:
 
-Training
-To train the dual-arm drumming policy from scratch:
 ```bash
-python scripts/rsl_rl/train.py --task Template-Porcaro-2026-ModelB-DR-v0
+python scripts/list_envs.py
 ```
 
-Evaluation (Playing)
-To watch the trained agent perform in the simulation GUI:
-```bash
-python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-v0
+You should see a table listing all available environments, for example:
+
 ```
++-----------------------------------------------+----------------------------------+
+| Task Name                                     | Config                           |
++-----------------------------------------------+----------------------------------+
+| Template-Porcaro-2026-ModelB-user0            | ...EnvCfg_ModelB                 |
+| Template-Porcaro-2026-ModelB-DR-user0         | ...EnvCfg_ModelB_DR              |
+| Template-Porcaro-2026-ModelB-user1            | ...EnvCfg_ModelB                 |
+| Template-Porcaro-2026-ModelB-DR-user1         | ...EnvCfg_ModelB_DR              |
++-----------------------------------------------+----------------------------------+
+```
+
+---
 
 ## 🤖 3D Assets & Data Setup (⚠️ CRITICAL)
-Due to file size and licensing, 3D models and raw CSV data may need to be placed manually before running the environment. The environment's asset loader explicitly searches for the data/ and assets/ directories at the project root.
 
-1. Robot and Drum Models (assets/)
-Place the following .usd files into the assets/ directory:
+Due to file size and licensing, 3D models and force map CSVs must be placed manually.
 
-porcaro.usd
+### Robot and Drum Models (`assets/`)
 
-sneadrum.usd
+Place the following `.usd` files into `source/porcaro_2026/porcaro_2026/tasks/assets/`:
 
-drum.usd (Important: sneadrum.usd is a scaled reference of drum.usd. Due to USD architecture, if drum.usd is missing, Isaac Sim will not throw an error, but the drum will be invisible in the simulation GUI. Both files must be present.)
+- `porcaro.usd`
+- `sneadrum.usd`
+- `drum.usd`
 
-2. Pneumatic Force Maps (data/)
-Place the PAM hysteresis/force CSV maps into the data/ directory:
+> ⚠️ `sneadrum.usd` is a scaled reference of `drum.usd`. If `drum.usd` is missing, Isaac Sim will not throw an error but the drum will be **invisible** in the GUI. Both files must be present.
 
-pam_force_map.csv
+### Pneumatic Force Maps (`data/`)
 
-pam_force_0_map.csv (If required by your configuration)
+Place the following CSV files into `source/porcaro_2026/porcaro_2026/tasks/data/`:
+
+- `pam_force_map.csv`
+- `pam_force_0_map.csv`
+
+---
+
+## 🎮 Usage
+
+Each user has their own independent set of registered task environments. Use the `--task` flag to specify which user's environment to run.
+
+### Available Task IDs
+
+| User  | Task ID (without DR)                      | Task ID (with DR, recommended)               |
+|-------|-------------------------------------------|----------------------------------------------|
+| user0 | `Template-Porcaro-2026-ModelB-user0`      | `Template-Porcaro-2026-ModelB-DR-user0`      |
+| user1 | `Template-Porcaro-2026-ModelB-user1`      | `Template-Porcaro-2026-ModelB-DR-user1`      |
+
+> **DR** (Domain Randomization) is recommended for better sim-to-real transfer.
+
+---
+
+### Training
+
+Train a policy from scratch using your own task environment:
+
+```bash
+# user0
+python scripts/rsl_rl/train.py --task Template-Porcaro-2026-ModelB-DR-user0
+
+# user1
+python scripts/rsl_rl/train.py --task Template-Porcaro-2026-ModelB-DR-user1
+```
+
+### Evaluation (Playing)
+
+Watch the trained agent perform in the simulation GUI:
+
+```bash
+# user0
+python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user0
+
+# user1
+python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user1
+```
+
+---
+
+## 🧩 Adding a New User
+
+To add a new user (e.g., `user2`):
+
+1. Copy the `user0/` directory and rename it to `user2/`.
+2. Edit `user2/__init__.py` to register new task IDs (e.g., `Template-Porcaro-2026-ModelB-user2`).
+3. Add `from . import user2` to the parent `__init__.py`.
+4. Verify with `python scripts/list_envs.py`.

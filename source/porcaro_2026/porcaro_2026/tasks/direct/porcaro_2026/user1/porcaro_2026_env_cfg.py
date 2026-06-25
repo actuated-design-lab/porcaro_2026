@@ -30,7 +30,7 @@ from .cfg.sensors import contact_forces_stick_at_drum_cfg, drum_vs_stick_cfg
 from .cfg.controller_cfg import TorqueControllerCfg
 from .cfg.logging_cfg import LoggingCfg, RewardLoggingCfg
 from .cfg.rewards_cfg import RewardsCfg
-from .cfg.actuator_cfg import PamGeometricCfg
+from ..common.cfg.actuator_cfg import PamGeometricCfg
 
 @configclass
 class Porcaro2026EnvCfg(DirectRLEnvCfg):

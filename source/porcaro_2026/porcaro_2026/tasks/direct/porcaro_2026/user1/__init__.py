@@ -1,15 +1,13 @@
-# Copyright (c) 2022-2025, The Isaac Lab Project Developers (https://github.com/isaac-sim/IsaacLab/blob/main/CONTRIBUTORS.md).
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
 # All rights reserved.
 #
 # SPDX-License-Identifier: BSD-3-Clause
-
-# source/porcaro_2026/porcaro_2026/tasks/direct/porcaro_2026/__init__.py
 
 import gymnasium as gym
 from . import agents
 
 # ======================================================================
-# Model B: ヒステリシス・たわみ考慮モデル (IROS 2026)
+# Model B: ヒステリシス・たわみ考慮モデル (IROS 2026) - user1
 # ======================================================================
 
 # --- Model B (DRなし) ---
