@@ -22,8 +22,8 @@ from isaaclab.managers import EventManager
 
 # Porcaro RL imports
 from .porcaro_2026_env_cfg import Porcaro2026EnvCfg
-from .actions.base import ActionController
-from .actions.torque import TorqueActionController
+from ..common.actions.base import ActionController
+from ..common.actions.torque import TorqueActionController
 from .logging.logging_manager import LoggingManager
 from .rewards.reward import RewardManager
 from .rhythm_generator import RhythmGenerator

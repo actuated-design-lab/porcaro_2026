@@ -14,7 +14,7 @@ from . import agents
 
 # --- Model B (DRなし) ---
 gym.register(
-    id="Template-Porcaro-2026-ModelB-v0",
+    id="Template-Porcaro-2026-ModelB-user0",
     entry_point=f"{__name__}.porcaro_2026_env:Porcaro2026Env",
     disable_env_checker=True,
     kwargs={
@@ -25,7 +25,7 @@ gym.register(
 
 # --- Model B (DRあり: 推奨) ---
 gym.register(
-    id="Template-Porcaro-2026-ModelB-DR-v0",
+    id="Template-Porcaro-2026-ModelB-DR-user0",
     entry_point=f"{__name__}.porcaro_2026_env:Porcaro2026Env",
     disable_env_checker=True,
     kwargs={
