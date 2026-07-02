@@ -23,7 +23,7 @@ from isaaclab.managers import EventManager
 # Porcaro RL imports
 from .porcaro_2026_env_cfg import Porcaro2026EnvCfg
 from ..common.actions.base import ActionController
-from ..common.actions.torque import TorqueActionController
+from .actions.discrete_torque import DiscreteTorqueActionController
 from .logging.logging_manager import LoggingManager
 from .rewards.reward import RewardManager
 from .rhythm_generator import RhythmGenerator
@@ -109,7 +109,7 @@ class Porcaro2026Env(DirectRLEnv):
 
         pam_tau_scale_range = getattr(self.cfg, "pam_tau_scale_range", (1.0, 1.0))
         
-        self.action_controller = TorqueActionController(
+        self.action_controller = DiscreteTorqueActionController(
             dt_ctrl=dt_ctrl,
             control_mode=ctrl_cfg.control_mode,
             r=ctrl_cfg.r,
@@ -127,6 +127,7 @@ class Porcaro2026Env(DirectRLEnv):
             use_pressure_dependent_tau=ctrl_cfg.use_pressure_dependent_tau,
             geometric_cfg=self.cfg.pam_geometric_cfg,
             pam_tau_scale_range=pam_tau_scale_range,
+            discrete_threshold=ctrl_cfg.discrete_threshold,  # 閾値：連続値が Pmax の 50% 以上で ON
         )
         self.action_controller.reset(self.num_envs, self.device)
 

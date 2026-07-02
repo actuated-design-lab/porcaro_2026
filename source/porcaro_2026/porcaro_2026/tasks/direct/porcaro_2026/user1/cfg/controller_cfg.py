@@ -24,3 +24,5 @@ class TorqueControllerCfg:
     force_scale: float = 0.2
     h0_map_csv: str = H0_MAP_CSV
     use_pressure_dependent_tau: bool = True
+    use_discrete_action: bool = True       # True にすると電磁弁モード
+    discrete_threshold: float = 0.5       # 連続圧力値の何割以上でONにするか（0〜1）
