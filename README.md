@@ -185,13 +185,23 @@ Watch the trained agent perform in the simulation GUI:
 # user0
 python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user0
 
-python scripts/rsl_rl/play_sim_rhythm.py \
-  --task Template-Porcaro-2026-ModelB-DR-user1 \
-  --num_envs 1 \
-  --pattern double \
-  --bpm 120 \
-  --load_run /rsl_rl/porcaro_rslrl_lstm_modelB_DR_lookahead05/2026-03-01_08-00-23 \
+# LSTM
+python scripts/rsl_rl/train.py   --task Template-Porcaro-2026-ModelB-DR-user0   --agent rsl_rl_lstm_cfg_entry_point  --seed 1   --lookahead_horizon 0.5 --experiment_name porcaro_lstm_lookahead05   --run_name seed1   --headless
+
+# MLP
+python scripts/rsl_rl/train.py   --task Template-Porcaro-2026-ModelB-DR-user0   --agent rsl_rl_mlp_cfg_entry_point  --seed 1   --lookahead_horizon 0.5 --experiment_name porcaro_mlp_lookahead01   --run_name seed1   --headless
+
+# MLP frame stacking
+python scripts/rsl_rl/train.py --task Template-Porcaro-2026-ModelB-DR-user0 \
+  --agent rsl_rl_mlp_cfg_entry_point \
+  --seed 1 \
+  --use_frame_stacking --frame_stack_k 5 \
+  --lookahead_horizon 0.5 \
+  --experiment_name porcaro_mlp_framestack_k5_lookahead05 \
+  --run_name seed1 \
   --headless
+
+
 
 # user1
 python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user1

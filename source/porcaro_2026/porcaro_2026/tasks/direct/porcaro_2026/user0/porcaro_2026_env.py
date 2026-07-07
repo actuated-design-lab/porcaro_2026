@@ -182,6 +182,16 @@ class Porcaro2026Env(DirectRLEnv):
         
         lookahead_horizon = getattr(self.cfg, "lookahead_horizon", 0.5)
         self.lookahead_steps = int(lookahead_horizon / self.dt_ctrl_step)
+
+        self.use_frame_stacking = getattr(self.cfg, "use_frame_stacking", False)
+        self.frame_stack_k = getattr(self.cfg, "frame_stack_k", 1)
+        self.base_obs_dim = 10 + self.lookahead_steps
+
+        if self.use_frame_stacking:
+            self.obs_history = torch.zeros(
+                (self.num_envs, self.frame_stack_k, self.base_obs_dim),
+                device=self.device, dtype=torch.float32
+            )
         
         # ---------------------------------------------------------
         # 4. 診断情報の表示
@@ -546,7 +556,16 @@ class Porcaro2026Env(DirectRLEnv):
 
         # [変更]: 観測結合 (q, qd, prev_act, sin, cos, bpm, lookahead)
         # 観測次元: q(2)+qd(2)+prev_act(3)+sin(1)+cos(1)+bpm(1)+lookahead(25) = 35次元
-        obs = torch.cat((q, qd, self.prev_actions, sin_phase, cos_phase, bpm_obs, rhythm_buf), dim=-1)
+        obs_single = torch.cat((q, qd, self.prev_actions, sin_phase, cos_phase, bpm_obs, rhythm_buf), dim=-1)
+
+        # ↓↓↓ ここから追加 ↓↓↓
+        if self.use_frame_stacking:
+            self.obs_history = torch.roll(self.obs_history, shifts=-1, dims=1)
+            self.obs_history[:, -1, :] = obs_single
+            obs = self.obs_history.reshape(self.num_envs, -1)
+        else:
+            obs = obs_single
+
         return {"policy": obs}
 
     def _get_rewards(self, force_max: torch.Tensor = None, target_ref: torch.Tensor = None) -> torch.Tensor:
@@ -646,6 +665,8 @@ class Porcaro2026Env(DirectRLEnv):
         # [追加]: 前回アクションのリセット
         self.prev_actions[env_ids] = 0.0
 
+        if hasattr(self, "obs_history"):
+            self.obs_history[env_ids] = 0.0
         if hasattr(self, "reward_manager"):
             self.reward_manager.reset_idx(env_ids)
         if hasattr(self, "logging_manager"):

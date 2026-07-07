@@ -74,9 +74,20 @@ def main(env_cfg, agent_cfg):
     env_cfg.scene.num_envs = args_cli.num_envs
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else "cuda:0"
     
-    # ログ有効化
+    # 条件タグを作る（チェックポイント名＋pattern＋bpmで一意にする）
+    ckpt_name = os.path.splitext(os.path.basename(resume_path))[0]   # 例: model_1499
+    run_tag = os.path.basename(os.path.dirname(resume_path))          # 例: 2026-03-01_08-00-23
+    condition_tag = f"{args_cli.pattern}_{int(args_cli.bpm)}bpm"
+
+    eval_out_dir = os.path.join("eval_logs", run_tag, ckpt_name, condition_tag)
+    os.makedirs(eval_out_dir, exist_ok=True)
+
     if hasattr(env_cfg, "logging"):
-        env_cfg.logging.enabled = True 
+        env_cfg.logging.enabled = True
+        env_cfg.logging.filepath = os.path.join(eval_out_dir, "simulation_log.csv")
+    if hasattr(env_cfg, "reward_logging"):
+        env_cfg.reward_logging.enabled = True
+        env_cfg.reward_logging.filepath = os.path.join(eval_out_dir, "reward_log.csv")
 
     # ★ RhythmGeneratorを「テストモード」にする設定
     # ※ Porcaro2026EnvCfg にこれらのフィールドがある前提ですが、

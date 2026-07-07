@@ -60,7 +60,7 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
     drum_contact_cfg: ContactSensorCfg = drum_vs_stick_cfg
     
     action_space: int = 3
-    observation_space: int = 30
+    observation_space: int = 60
     state_space: int = 0
     dof_names: list[str] = ["Base_link_Wrist_joint", "Hand_link_Grip_joint"]
 
@@ -75,8 +75,11 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
     simple_rhythm_mode: str = "single_8" 
     simple_rhythm_bpm: float = 120.0    
     target_hit_force: float = 20.0
-    lookahead_horizon: float = 1.0
+    lookahead_horizon: float = 0.5
     bpm_range: tuple[float, float] = (60.0, 160.0)
+
+    use_frame_stacking: bool = False
+    frame_stack_k: int = 5
 
     pam_tau_scale_range: tuple[float, float] = (1.0, 1.0)
 
@@ -90,6 +93,23 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
         super().__post_init__()
         if hasattr(self.rewards, "target_force_fd"):
             self.rewards.target_force_fd = self.target_hit_force
+
+        # 制御周期から lookahead_steps を逆算し、observation_space を自動導出
+        dt_ctrl = self.sim.dt * self.decimation
+        lookahead_steps = int(self.lookahead_horizon / dt_ctrl)
+
+        # ベース次元(10) = q(2)+qd(2)+prev_act(3)+sin(1)+cos(1)+bpm(1)
+        base_obs_dim = 10 + lookahead_steps
+
+        if self.use_frame_stacking:
+            self.observation_space = base_obs_dim * self.frame_stack_k
+        else:
+            self.observation_space = base_obs_dim
+
+        print(f"[Porcaro2026EnvCfg] lookahead_horizon={self.lookahead_horizon}s "
+              f"base_obs_dim={base_obs_dim} use_frame_stacking={self.use_frame_stacking} "
+              f"frame_stack_k={self.frame_stack_k if self.use_frame_stacking else 1} "
+              f"-> observation_space={self.observation_space}")
 
 
 @configclass

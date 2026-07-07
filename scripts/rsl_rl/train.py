@@ -31,6 +31,12 @@ parser.add_argument(
     "--distributed", action="store_true", default=False, help="Run training with multiple GPUs or nodes."
 )
 parser.add_argument("--export_io_descriptors", action="store_true", default=False, help="Export IO descriptors.")
+parser.add_argument("--lookahead_horizon", type=float, default=None, 
+                    help="Override lookahead horizon (e.g. 0.1, 0.5, 1.0).")
+parser.add_argument("--use_frame_stacking", action="store_true", default=False,
+                    help="Enable frame-stacking (finite history) observation.")
+parser.add_argument("--frame_stack_k", type=int, default=5,
+                    help="Number of frames to stack.")
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -164,6 +170,24 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         print("[INFO] Training mode: Forcing data logging OFF to improve performance.")
         env_cfg.logging.enabled = False
     # ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+    if args_cli.lookahead_horizon is not None:
+        env_cfg.lookahead_horizon = args_cli.lookahead_horizon
+        print(f"[Config] lookahead_horizon overridden to {args_cli.lookahead_horizon}")
+
+    if args_cli.use_frame_stacking:
+        env_cfg.use_frame_stacking = True
+        env_cfg.frame_stack_k = args_cli.frame_stack_k
+
+    dt_ctrl = env_cfg.sim.dt * env_cfg.decimation
+    lookahead_steps = int(env_cfg.lookahead_horizon / dt_ctrl)
+    base_obs_dim = 10 + lookahead_steps
+    env_cfg.observation_space = (
+        base_obs_dim * env_cfg.frame_stack_k if env_cfg.use_frame_stacking else base_obs_dim
+    )
+    print(f"[Config Override] lookahead={env_cfg.lookahead_horizon} "
+        f"frame_stacking={env_cfg.use_frame_stacking} k={env_cfg.frame_stack_k} "
+        f"-> observation_space={env_cfg.observation_space}")
 
     # create isaac environment
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)

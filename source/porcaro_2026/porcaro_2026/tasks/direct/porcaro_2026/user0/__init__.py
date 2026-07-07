@@ -18,6 +18,8 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.porcaro_2026_env_cfg:Porcaro2026EnvCfg_ModelB",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPORunnerCfg",
+        "rsl_rl_lstm_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_lstm_cfg:PPORunnerCfg",
+        "rsl_rl_mlp_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_mlp_cfg:PPORunnerCfg",
     },
 )
 
@@ -29,5 +31,7 @@ gym.register(
     kwargs={
         "env_cfg_entry_point": f"{__name__}.porcaro_2026_env_cfg:Porcaro2026EnvCfg_ModelB_DR",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:PPORunnerCfg",
+        "rsl_rl_lstm_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_lstm_cfg:PPORunnerCfg",
+        "rsl_rl_mlp_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_mlp_cfg:PPORunnerCfg",
     },
 )
