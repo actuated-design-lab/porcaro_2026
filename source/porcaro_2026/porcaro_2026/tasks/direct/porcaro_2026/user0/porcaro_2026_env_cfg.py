@@ -60,7 +60,7 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
     drum_contact_cfg: ContactSensorCfg = drum_vs_stick_cfg
     
     action_space: int = 3
-    observation_space: int = 15
+    observation_space: int = 30
     state_space: int = 0
     dof_names: list[str] = ["Base_link_Wrist_joint", "Hand_link_Grip_joint"]
 
@@ -75,7 +75,7 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
     simple_rhythm_mode: str = "single_8" 
     simple_rhythm_bpm: float = 120.0    
     target_hit_force: float = 20.0
-    lookahead_horizon: float = 0.1
+    lookahead_horizon: float = 1.0
     bpm_range: tuple[float, float] = (60.0, 160.0)
 
     pam_tau_scale_range: tuple[float, float] = (1.0, 1.0)

@@ -185,6 +185,14 @@ Watch the trained agent perform in the simulation GUI:
 # user0
 python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user0
 
+python scripts/rsl_rl/play_sim_rhythm.py \
+  --task Template-Porcaro-2026-ModelB-DR-user1 \
+  --num_envs 1 \
+  --pattern double \
+  --bpm 120 \
+  --load_run /rsl_rl/porcaro_rslrl_lstm_modelB_DR_lookahead05/2026-03-01_08-00-23 \
+  --headless
+
 # user1
 python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user1
 ```

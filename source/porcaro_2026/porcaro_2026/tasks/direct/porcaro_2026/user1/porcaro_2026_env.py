@@ -47,6 +47,7 @@ class Porcaro2026Env(DirectRLEnv):
         self.action_controller: ActionController = None
         self.logging_manager: LoggingManager = None
         self.reward_manager: RewardManager = None
+        self.actuator_net = None
         
 
         # [追加]: カリキュラム学習用のステップカウンタ
