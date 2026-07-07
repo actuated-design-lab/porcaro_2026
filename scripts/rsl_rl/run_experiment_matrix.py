@@ -14,6 +14,9 @@ Nシード分まとめて自動実行するループスクリプト。
 
   # シード数やmax_iterationsを変えたい場合
   python scripts/rsl_rl/run_experiment_matrix.py --num_seeds 5 --max_iterations 1500
+
+  # 並列環境数を変えたい場合 (デフォルト2048。VRAMに応じて調整)
+  python scripts/rsl_rl/run_experiment_matrix.py --num_envs 2048
 """
 
 from __future__ import annotations
@@ -129,6 +132,7 @@ def build_command(cond: dict, seed: int, args: argparse.Namespace) -> tuple[list
         "--experiment_name", experiment_name,
         "--run_name", run_name,
         "--max_iterations", str(args.max_iterations),
+        "--num_envs", str(args.num_envs),
         "--headless",
     ]
 
@@ -150,6 +154,8 @@ def main():
                         help="各条件ごとのシード本数 (1..num_seeds を使用)")
     parser.add_argument("--max_iterations", type=int, default=1500,
                         help="1本あたりの学習イテレーション数")
+    parser.add_argument("--num_envs", type=int, default=2048,
+                        help="並列環境数 (train.pyに--num_envsとして渡す)")
     parser.add_argument("--logs_root", type=str, default="logs/rsl_rl",
                         help="ログのルートディレクトリ (完了判定に使用)")
     parser.add_argument("--dry_run", action="store_true",
