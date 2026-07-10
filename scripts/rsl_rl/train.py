@@ -37,6 +37,10 @@ parser.add_argument("--use_frame_stacking", action="store_true", default=False,
                     help="Enable frame-stacking (finite history) observation.")
 parser.add_argument("--frame_stack_k", type=int, default=5,
                     help="Number of frames to stack.")
+parser.add_argument("--pam_tau_scale", type=float, default=None,
+                    help="Fix PAM time-constant multiplier to this single value, "
+                         "overriding pam_tau_scale_range DR sampling entirely "
+                         "(e.g. 0.5 / 1.0 / 2.0 for the tau sweep).")
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -178,6 +182,11 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     if args_cli.use_frame_stacking:
         env_cfg.use_frame_stacking = True
         env_cfg.frame_stack_k = args_cli.frame_stack_k
+
+    if args_cli.pam_tau_scale is not None:
+        env_cfg.pam_tau_scale_range = (args_cli.pam_tau_scale, args_cli.pam_tau_scale)
+        print(f"[Config] pam_tau_scale_range fixed to "
+              f"({args_cli.pam_tau_scale}, {args_cli.pam_tau_scale}) for tau sweep")
 
     dt_ctrl = env_cfg.sim.dt * env_cfg.decimation
     lookahead_steps = int(env_cfg.lookahead_horizon / dt_ctrl)

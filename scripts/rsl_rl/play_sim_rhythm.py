@@ -30,9 +30,15 @@ parser.add_argument("--use_pretrained_checkpoint", action="store_true", help="Us
 
 # ★ デプロイスクリプトと共通の引数
 parser.add_argument("--bpm", type=float, default=60.0, help="Target BPM (e.g. 60, 120).")
-parser.add_argument("--pattern", type=str, default="single_4", 
+parser.add_argument("--pattern", type=str, default="single_4",
                     choices=["single_4", "single_8", "double", "paradiddle", "upbeat", "clave"],
                     help="Rhythm pattern to test.")
+parser.add_argument("--trial", type=int, default=0,
+                    help="Trial index for this (pattern, bpm) condition; used to separate output CSVs "
+                         "and to derive a reproducible per-trial seed.")
+parser.add_argument("--max_episodes", type=int, default=3,
+                    help="Stop after this many episode resets. This script has no other exit "
+                         "condition when run headless/unattended (num_envs=1 assumed).")
 
 # RSL-RL args
 cli_args.add_rsl_rl_args(parser)
@@ -73,11 +79,15 @@ def main(env_cfg, agent_cfg):
     # 2. 環境設定のオーバーライド (ここが重要)
     env_cfg.scene.num_envs = args_cli.num_envs
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else "cuda:0"
-    
-    # 条件タグを作る（チェックポイント名＋pattern＋bpmで一意にする）
+    # --seed は元々 argparse にあるだけで env_cfg に渡っていなかったため明示的に反映する
+    # (未指定なら env_cfg.seed のデフォルト値のまま = Isaac Lab 側は非決定的に動く)
+    if args_cli.seed is not None:
+        env_cfg.seed = args_cli.seed
+
+    # 条件タグを作る（チェックポイント名＋pattern＋bpm＋trialで一意にする）
     ckpt_name = os.path.splitext(os.path.basename(resume_path))[0]   # 例: model_1499
     run_tag = os.path.basename(os.path.dirname(resume_path))          # 例: 2026-03-01_08-00-23
-    condition_tag = f"{args_cli.pattern}_{int(args_cli.bpm)}bpm"
+    condition_tag = f"{args_cli.pattern}_{int(args_cli.bpm)}bpm_trial{args_cli.trial}"
 
     eval_out_dir = os.path.join("eval_logs", run_tag, ckpt_name, condition_tag)
     os.makedirs(eval_out_dir, exist_ok=True)
@@ -151,14 +161,21 @@ def main(env_cfg, agent_cfg):
     print(f" Mode: {args_cli.pattern} | BPM: {args_cli.bpm}")
     print("="*60)
 
+    episode_count = 0
     while simulation_app.is_running():
         with torch.inference_mode():
             # 推論
             actions = policy(obs)
-            
+
             # ステップ実行 (環境がConfig通りのリズムを生成してくれる)
-            obs, _, _, _ = env.step(actions)
-            
+            obs, _, dones, _ = env.step(actions)
+            if dones.any():
+                episode_count += int(dones.sum().item())
+                if episode_count >= args_cli.max_episodes:
+                    print(f"[INFO] Reached max_episodes={args_cli.max_episodes} "
+                          f"({episode_count} resets). Exiting...")
+                    break
+
     env.close()
     simulation_app.close()
 

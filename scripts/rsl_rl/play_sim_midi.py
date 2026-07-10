@@ -38,6 +38,9 @@ add_arg_if_missing(parser, "--num_envs", type=int, default=None, help="Number of
 add_arg_if_missing(parser, "--agent", type=str, default="rsl_rl_cfg_entry_point", help="RL agent config.")
 add_arg_if_missing(parser, "--seed", type=int, default=None, help="Seed.")
 add_arg_if_missing(parser, "--use_pretrained_checkpoint", action="store_true", help="Use pre-trained checkpoint.")
+add_arg_if_missing(parser, "--trial", type=int, default=0,
+                    help="Trial index for this MIDI condition; used to separate output CSVs "
+                         "and to derive a reproducible per-trial seed.")
 
 try:
     cli_args.add_rsl_rl_args(parser)
@@ -158,16 +161,31 @@ def main(env_cfg, agent_cfg):
         resume_path = get_checkpoint_path(log_root_path, run_dir_arg, args_cli.load_checkpoint)
 
     log_dir = os.path.dirname(resume_path)
-    
+
+    # 条件タグを作る（チェックポイント名＋MIDIファイル名＋trialで一意にする）
+    # play_sim_rhythm.py と同じ eval_logs/{run_tag}/{ckpt_name}/{condition}_trial{t}/ 構造に揃える
+    ckpt_name = os.path.splitext(os.path.basename(resume_path))[0]   # 例: model_1499
+    run_tag = os.path.basename(os.path.dirname(resume_path))          # 例: 2026-03-01_08-00-23
+    midi_stem = os.path.splitext(os.path.basename(args_cli.midi))[0]  # 例: gmd_01_low_bpm80
+    condition_tag = f"{midi_stem}_trial{args_cli.trial}"
+
+    eval_out_dir = os.path.join("eval_logs", run_tag, ckpt_name, condition_tag)
+    os.makedirs(eval_out_dir, exist_ok=True)
+
     env_cfg.scene.num_envs = 1
     if hasattr(args_cli, "device") and args_cli.device:
         env_cfg.sim.device = args_cli.device
+    # --seed は元々 argparse にあるだけで env_cfg に渡っていなかったため明示的に反映する
+    # (未指定なら env_cfg.seed のデフォルト値のまま = Isaac Lab 側は非決定的に動く)
+    if args_cli.seed is not None:
+        env_cfg.seed = args_cli.seed
     env_cfg.episode_length_s = 300.0
     env_cfg.log_dir = log_dir
     if hasattr(env_cfg, "logging"):
         env_cfg.logging.enabled = True
+        env_cfg.logging.filepath = os.path.join(eval_out_dir, "simulation_log.csv")
         print("[INFO] Play mode detected: Logging enabled (force).")
-    
+
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     
 
