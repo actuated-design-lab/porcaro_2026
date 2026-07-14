@@ -68,6 +68,23 @@ AGENT_BY_MODEL: dict[str, str] = {
     "E": "rsl_rl_mlp_cfg_entry_point",
 }
 
+# Template-Porcaro-2026-ModelB-DR-user0's env_cfg defaults to
+# lookahead_horizon=0.5 / use_frame_stacking=False (observation_space=35),
+# which only matches models B and D. A/C/E were trained with different
+# lookahead_horizon / frame stacking (see analysis/harness/identify.py's
+# classify_model() and logs/rsl_rl/MODEL_MAP.md) and their checkpoints
+# therefore failed to load into the unmodified task with an observation-space
+# size mismatch until play_sim_rhythm.py/play_sim_midi.py gained the
+# --lookahead_horizon/--use_frame_stacking/--frame_stack_k overrides (mirrors
+# train.py:178-199).
+MODEL_ENV_OVERRIDES: dict[str, dict] = {
+    "A": {"lookahead_horizon": 0.1, "use_frame_stacking": False, "frame_stack_k": 1},
+    "B": {"lookahead_horizon": 0.5, "use_frame_stacking": False, "frame_stack_k": 1},
+    "C": {"lookahead_horizon": 1.0, "use_frame_stacking": False, "frame_stack_k": 1},
+    "D": {"lookahead_horizon": 0.5, "use_frame_stacking": False, "frame_stack_k": 1},
+    "E": {"lookahead_horizon": 0.5, "use_frame_stacking": True, "frame_stack_k": 5},
+}
+
 BASIC_PATTERNS = ["single_4", "single_8", "double"]
 BASIC_BPMS = [60, 120, 160]
 BASIC: list[tuple[str, int]] = [(p, b) for p in BASIC_PATTERNS for b in BASIC_BPMS]
@@ -98,13 +115,17 @@ def trial_count_for(pattern: str, bpm: int, heavy_r: int) -> int:
     return heavy_r if (pattern, bpm) in HEAVY else 1
 
 
-def build_rhythm_command(python_exe: str, checkpoint: Path, agent: str, pattern: str, bpm: int, trial: int) -> list[str]:
+def build_rhythm_command(python_exe: str, checkpoint: Path, agent: str, model: str, pattern: str, bpm: int, trial: int) -> list[str]:
     trial_seed = TRIAL_SEED_BASE + trial
+    overrides = MODEL_ENV_OVERRIDES[model]
     return [
         python_exe, "scripts/rsl_rl/play_sim_rhythm.py",
         "--checkpoint", str(checkpoint),
         "--task", TASK_ID,
         "--agent", agent,
+        "--lookahead_horizon", str(overrides["lookahead_horizon"]),
+        *(["--use_frame_stacking", "--frame_stack_k", str(overrides["frame_stack_k"])]
+          if overrides["use_frame_stacking"] else []),
         "--pattern", pattern,
         "--bpm", str(bpm),
         "--trial", str(trial),
@@ -114,13 +135,17 @@ def build_rhythm_command(python_exe: str, checkpoint: Path, agent: str, pattern:
     ]
 
 
-def build_midi_command(python_exe: str, checkpoint: Path, agent: str, midi_path: str, trial: int) -> list[str]:
+def build_midi_command(python_exe: str, checkpoint: Path, agent: str, model: str, midi_path: str, trial: int) -> list[str]:
     trial_seed = TRIAL_SEED_BASE + trial
+    overrides = MODEL_ENV_OVERRIDES[model]
     return [
         python_exe, "scripts/rsl_rl/play_sim_midi.py",
         "--checkpoint", str(checkpoint),
         "--task", TASK_ID,
         "--agent", agent,
+        "--lookahead_horizon", str(overrides["lookahead_horizon"]),
+        *(["--use_frame_stacking", "--frame_stack_k", str(overrides["frame_stack_k"])]
+          if overrides["use_frame_stacking"] else []),
         "--midi", midi_path,
         "--trial", str(trial),
         "--seed", str(trial_seed),
@@ -149,7 +174,7 @@ def build_eval_plan(runs_df: pd.DataFrame, heavy_r: int = 5, python_exe: str | N
 
         for pattern, bpm in BASIC:
             for trial in range(trial_count_for(pattern, bpm, heavy_r)):
-                cmd = build_rhythm_command(python_exe, checkpoint, agent, pattern, bpm, trial)
+                cmd = build_rhythm_command(python_exe, checkpoint, agent, model, pattern, bpm, trial)
                 plan.append(
                     dict(
                         model=model,
@@ -165,7 +190,7 @@ def build_eval_plan(runs_df: pd.DataFrame, heavy_r: int = 5, python_exe: str | N
         for midi_path in GMD:
             condition = Path(midi_path).stem
             for trial in range(1):  # GMD conditions are never in HEAVY -> exactly 1 trial
-                cmd = build_midi_command(python_exe, checkpoint, agent, midi_path, trial)
+                cmd = build_midi_command(python_exe, checkpoint, agent, model, midi_path, trial)
                 plan.append(
                     dict(
                         model=model,
@@ -217,10 +242,10 @@ def build_priority_plan(
             for trial in range(trials_per_condition):
                 if kind == "basic":
                     pattern, bpm_str = condition.rsplit("_", 1)
-                    cmd = build_rhythm_command(python_exe, checkpoint, agent, pattern, int(bpm_str), trial)
+                    cmd = build_rhythm_command(python_exe, checkpoint, agent, row.model, pattern, int(bpm_str), trial)
                 elif kind == "gmd":
                     midi_path = next(p for p in GMD if Path(p).stem == condition)
-                    cmd = build_midi_command(python_exe, checkpoint, agent, midi_path, trial)
+                    cmd = build_midi_command(python_exe, checkpoint, agent, row.model, midi_path, trial)
                 else:
                     raise ValueError(f"build_priority_plan: unknown kind {kind!r} for condition {condition!r}")
 

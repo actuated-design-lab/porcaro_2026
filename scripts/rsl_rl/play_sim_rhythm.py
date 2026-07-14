@@ -39,6 +39,14 @@ parser.add_argument("--trial", type=int, default=0,
 parser.add_argument("--max_episodes", type=int, default=3,
                     help="Stop after this many episode resets. This script has no other exit "
                          "condition when run headless/unattended (num_envs=1 assumed).")
+parser.add_argument("--lookahead_horizon", type=float, default=None,
+                    help="Override lookahead horizon (e.g. 0.1, 0.5, 1.0). Must match the "
+                         "checkpoint's training-time value or policy loading will fail with an "
+                         "observation-space size mismatch.")
+parser.add_argument("--use_frame_stacking", action="store_true", default=False,
+                    help="Enable frame-stacking (finite history) observation.")
+parser.add_argument("--frame_stack_k", type=int, default=5,
+                    help="Number of frames to stack.")
 
 # RSL-RL args
 cli_args.add_rsl_rl_args(parser)
@@ -83,6 +91,27 @@ def main(env_cfg, agent_cfg):
     # (未指定なら env_cfg.seed のデフォルト値のまま = Isaac Lab 側は非決定的に動く)
     if args_cli.seed is not None:
         env_cfg.seed = args_cli.seed
+
+    # train.py:178-199 と同型のオーバーライド。checkpointが学習された
+    # lookahead_horizon/use_frame_stacking/frame_stack_kと一致させないと、
+    # OnPolicyRunner.load()時にobservation_space不一致でエラーになる。
+    if args_cli.lookahead_horizon is not None:
+        env_cfg.lookahead_horizon = args_cli.lookahead_horizon
+        print(f"[Config] lookahead_horizon overridden to {args_cli.lookahead_horizon}")
+
+    if args_cli.use_frame_stacking:
+        env_cfg.use_frame_stacking = True
+        env_cfg.frame_stack_k = args_cli.frame_stack_k
+
+    dt_ctrl = env_cfg.sim.dt * env_cfg.decimation
+    lookahead_steps = int(env_cfg.lookahead_horizon / dt_ctrl)
+    base_obs_dim = 10 + lookahead_steps
+    env_cfg.observation_space = (
+        base_obs_dim * env_cfg.frame_stack_k if env_cfg.use_frame_stacking else base_obs_dim
+    )
+    print(f"[Config Override] lookahead={env_cfg.lookahead_horizon} "
+        f"frame_stacking={env_cfg.use_frame_stacking} k={env_cfg.frame_stack_k} "
+        f"-> observation_space={env_cfg.observation_space}")
 
     # 条件タグを作る（チェックポイント名＋pattern＋bpm＋trialで一意にする）
     ckpt_name = os.path.splitext(os.path.basename(resume_path))[0]   # 例: model_1499

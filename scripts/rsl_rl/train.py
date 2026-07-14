@@ -147,7 +147,27 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         agent_cfg.seed = seed
 
     # specify directory for logging experiments
-    log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
+    logs_root_dir = "rsl_rl"
+    if args_cli.pam_tau_scale is not None:
+        # Tau sweep: isolate from the main experiment matrix entirely under a
+        # sibling root, so it can never land in - or get misclassified as -
+        # the existing porcaro_rslrl_lstm_modelB_DR /
+        # porcaro_rslrl_mlp_modelB_DR_lookahead5 folders under logs/rsl_rl/.
+        # analysis/harness/discover.py and analysis/eval/run_eval_matrix.py
+        # both default to scanning only logs/rsl_rl/, so this sibling root
+        # (logs/rsl_rl_tau_sweep/) is invisible to them without any change on
+        # their side - see logs/rsl_rl/MODEL_MAP.md for why that separation
+        # matters (classify_model() ignores pam_tau_scale_range and would
+        # otherwise misclassify several tau/lookahead cells as duplicate
+        # A/B/C runs).
+        logs_root_dir = "rsl_rl_tau_sweep"
+        lh_for_tag = args_cli.lookahead_horizon if args_cli.lookahead_horizon is not None else env_cfg.lookahead_horizon
+        tau_tag = f"tau{args_cli.pam_tau_scale}_lh{lh_for_tag}"
+        agent_cfg.run_name = f"{tau_tag}_{agent_cfg.run_name}" if agent_cfg.run_name else tau_tag
+        print(f"[Config] Tau sweep detected (--pam_tau_scale={args_cli.pam_tau_scale}): "
+              f"isolating logs under logs/{logs_root_dir}/, run_name -> {agent_cfg.run_name}")
+
+    log_root_path = os.path.join("logs", logs_root_dir, agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     # specify directory for logging runs: {time-stamp}_{run_name}

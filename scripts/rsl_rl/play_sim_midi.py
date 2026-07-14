@@ -41,6 +41,14 @@ add_arg_if_missing(parser, "--use_pretrained_checkpoint", action="store_true", h
 add_arg_if_missing(parser, "--trial", type=int, default=0,
                     help="Trial index for this MIDI condition; used to separate output CSVs "
                          "and to derive a reproducible per-trial seed.")
+add_arg_if_missing(parser, "--lookahead_horizon", type=float, default=None,
+                    help="Override lookahead horizon (e.g. 0.1, 0.5, 1.0). Must match the "
+                         "checkpoint's training-time value or policy loading will fail with an "
+                         "observation-space size mismatch.")
+add_arg_if_missing(parser, "--use_frame_stacking", action="store_true",
+                    help="Enable frame-stacking (finite history) observation.")
+add_arg_if_missing(parser, "--frame_stack_k", type=int, default=5,
+                    help="Number of frames to stack.")
 
 try:
     cli_args.add_rsl_rl_args(parser)
@@ -185,6 +193,27 @@ def main(env_cfg, agent_cfg):
         env_cfg.logging.enabled = True
         env_cfg.logging.filepath = os.path.join(eval_out_dir, "simulation_log.csv")
         print("[INFO] Play mode detected: Logging enabled (force).")
+
+    # train.py:178-199 と同型のオーバーライド。checkpointが学習された
+    # lookahead_horizon/use_frame_stacking/frame_stack_kと一致させないと、
+    # OnPolicyRunner.load()時にobservation_space不一致でエラーになる。
+    if args_cli.lookahead_horizon is not None:
+        env_cfg.lookahead_horizon = args_cli.lookahead_horizon
+        print(f"[Config] lookahead_horizon overridden to {args_cli.lookahead_horizon}")
+
+    if args_cli.use_frame_stacking:
+        env_cfg.use_frame_stacking = True
+        env_cfg.frame_stack_k = args_cli.frame_stack_k
+
+    dt_ctrl = env_cfg.sim.dt * env_cfg.decimation
+    lookahead_steps = int(env_cfg.lookahead_horizon / dt_ctrl)
+    base_obs_dim = 10 + lookahead_steps
+    env_cfg.observation_space = (
+        base_obs_dim * env_cfg.frame_stack_k if env_cfg.use_frame_stacking else base_obs_dim
+    )
+    print(f"[Config Override] lookahead={env_cfg.lookahead_horizon} "
+        f"frame_stacking={env_cfg.use_frame_stacking} k={env_cfg.frame_stack_k} "
+        f"-> observation_space={env_cfg.observation_space}")
 
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     

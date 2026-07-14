@@ -18,6 +18,11 @@ Safety:
 - The run directory with the most recent mtime is treated as "in progress"
   and is deliberately NOT opened (no params read, no checkpoint listing
   beyond a bare directory listing) - only its directory name is reported.
+  This "most recent mtime" candidate is only actually protected if it was
+  also written to within STALE_PROTECTION_THRESHOLD_S of now (see that
+  constant and _protect_if_fresh() below) - otherwise nothing anywhere is
+  being actively trained right now and the candidate is just the last run
+  that ever finished, not one "in progress".
 - No isaaclab / isaacsim / omni / torch import. No .pt files are loaded.
 """
 
@@ -25,6 +30,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -34,6 +40,33 @@ from .identify import EXP_TAG_TO_MODEL, classify_model, load_yaml
 
 RUN_DIR_RE = re.compile(r"^(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})_seed(\d+)$")
 CKPT_RE = re.compile(r"^model_(\d+)\.pt$")
+
+# How long after its last write a run dir can still plausibly be "in
+# progress". Existing runs write a checkpoint every save_interval=50
+# iterations, observed at ~9-10 minutes/checkpoint - this is set to several
+# times that cadence so a live run is never mistaken for stale between
+# checkpoint writes, while a run whose training process has actually exited
+# (or moved on to a different experiment_name folder for good) stops being
+# protected shortly after, instead of forever.
+STALE_PROTECTION_THRESHOLD_S = 30 * 60
+
+
+def _protect_if_fresh(candidate: Path | None) -> Path | None:
+    """Only treat `candidate` as the in-progress run if it was touched recently.
+
+    The "most-recently-modified directory" a caller computes below is, on
+    its own, just "latest across whatever folders exist" - it can't tell
+    "still being written to right now" from "was the last thing ever
+    written, and training has since stopped completely". Gating on mtime
+    recency (metadata-only, consistent with this module's read-only
+    contract) fixes that: a run stops being protected once nothing has
+    touched it in a while, regardless of whether it's still the max-mtime
+    dir across every known folder.
+    """
+    if candidate is None:
+        return None
+    age_s = time.time() - candidate.stat().st_mtime
+    return candidate if age_s <= STALE_PROTECTION_THRESHOLD_S else None
 
 
 def _list_checkpoint_iters(run_dir: Path) -> list[int]:
@@ -92,7 +125,7 @@ def discover_runs(
         # avoids this by computing one global protected_dir across every
         # known folder and passing it in here explicitly.
         mtimes = {d: d.stat().st_mtime for d in run_dirs}
-        protected_dir = max(mtimes, key=mtimes.get) if mtimes else None
+        protected_dir = _protect_if_fresh(max(mtimes, key=mtimes.get) if mtimes else None)
 
     rows: list[dict[str, Any]] = []
     for run_dir in run_dirs:
@@ -213,7 +246,9 @@ def discover_all_runs(
         for d in root.iterdir()
         if d.is_dir() and RUN_DIR_RE.match(d.name)
     ]
-    global_protected_dir = max(all_run_dirs, key=lambda d: d.stat().st_mtime) if all_run_dirs else None
+    global_protected_dir = _protect_if_fresh(
+        max(all_run_dirs, key=lambda d: d.stat().st_mtime) if all_run_dirs else None
+    )
 
     frames = [
         discover_runs(root, max_iterations_hint=max_iterations_hint, protected_dir=global_protected_dir)
