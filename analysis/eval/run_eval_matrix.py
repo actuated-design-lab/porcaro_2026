@@ -115,40 +115,54 @@ def trial_count_for(pattern: str, bpm: int, heavy_r: int) -> int:
     return heavy_r if (pattern, bpm) in HEAVY else 1
 
 
-def build_rhythm_command(python_exe: str, checkpoint: Path, agent: str, model: str, pattern: str, bpm: int, trial: int) -> list[str]:
+def build_rhythm_command(
+    python_exe: str, checkpoint: Path, agent: str, model: str, pattern: str, bpm: int, trial: int,
+    task_id: str = TASK_ID, eval_logs_root: str = "eval_logs",
+    mask_mode: str | None = None, mask_lo_s: float = 0.5, mask_hi_s: float = 1.0,
+) -> list[str]:
     trial_seed = TRIAL_SEED_BASE + trial
     overrides = MODEL_ENV_OVERRIDES[model]
     return [
         python_exe, "scripts/rsl_rl/play_sim_rhythm.py",
         "--checkpoint", str(checkpoint),
-        "--task", TASK_ID,
+        "--task", task_id,
         "--agent", agent,
         "--lookahead_horizon", str(overrides["lookahead_horizon"]),
         *(["--use_frame_stacking", "--frame_stack_k", str(overrides["frame_stack_k"])]
           if overrides["use_frame_stacking"] else []),
+        *(["--mask_mode", mask_mode, "--mask_lo_s", str(mask_lo_s), "--mask_hi_s", str(mask_hi_s)]
+          if mask_mode and mask_mode != "none" else []),
         "--pattern", pattern,
         "--bpm", str(bpm),
         "--trial", str(trial),
         "--seed", str(trial_seed),
+        "--eval_logs_root", eval_logs_root,
         "--headless",
         "--num_envs", "1",
     ]
 
 
-def build_midi_command(python_exe: str, checkpoint: Path, agent: str, model: str, midi_path: str, trial: int) -> list[str]:
+def build_midi_command(
+    python_exe: str, checkpoint: Path, agent: str, model: str, midi_path: str, trial: int,
+    task_id: str = TASK_ID, eval_logs_root: str = "eval_logs",
+    mask_mode: str | None = None, mask_lo_s: float = 0.5, mask_hi_s: float = 1.0,
+) -> list[str]:
     trial_seed = TRIAL_SEED_BASE + trial
     overrides = MODEL_ENV_OVERRIDES[model]
     return [
         python_exe, "scripts/rsl_rl/play_sim_midi.py",
         "--checkpoint", str(checkpoint),
-        "--task", TASK_ID,
+        "--task", task_id,
         "--agent", agent,
         "--lookahead_horizon", str(overrides["lookahead_horizon"]),
         *(["--use_frame_stacking", "--frame_stack_k", str(overrides["frame_stack_k"])]
           if overrides["use_frame_stacking"] else []),
+        *(["--mask_mode", mask_mode, "--mask_lo_s", str(mask_lo_s), "--mask_hi_s", str(mask_hi_s)]
+          if mask_mode and mask_mode != "none" else []),
         "--midi", midi_path,
         "--trial", str(trial),
         "--seed", str(trial_seed),
+        "--eval_logs_root", eval_logs_root,
         "--headless",
         "--num_envs", "1",
     ]
@@ -212,6 +226,13 @@ def build_priority_plan(
     model_priority: list[str] = MONDAY_MODEL_PRIORITY,
     trials_per_condition: int = 1,
     python_exe: str | None = None,
+    task_id: str = TASK_ID,
+    eval_logs_root: str = "eval_logs",
+    model_filter: list[str] | None = None,
+    condition_filter: list[str] | None = None,
+    mask_mode: str | None = None,
+    mask_lo_s: float = 0.5,
+    mask_hi_s: float = 1.0,
 ) -> list[dict]:
     """Condition-outer / (model, seed)-inner ordering, for the Monday priority queue.
 
@@ -223,18 +244,33 @@ def build_priority_plan(
     trials_per_condition trials (default 1) - it does not consult HEAVY/
     trial_count_for, since the Monday batch is an explicit, separate, smaller
     design from build_eval_plan()'s full matrix.
+
+    task_id/eval_logs_root/mask_mode default to the original Monday-batch
+    behavior (DR task, eval_logs/, no masking) - pass overrides to reuse this
+    same plan builder for the non-DR re-eval, trials>1 eval-noise cells, and
+    Model C far-future masking ablation, each writing to its own
+    eval_logs_root so none of them mix with the original 75-job output.
+    model_filter/condition_filter restrict the plan to a subset (e.g. just
+    the representative cells for the trials>1 / masking studies) without
+    needing a second discover_all_runs() pass.
     """
     python_exe = python_exe or sys.executable
 
     completed = runs_df[runs_df["status"] == "completed"].copy()
     completed = completed[completed["model"].isin(AGENT_BY_MODEL)]
+    if model_filter is not None:
+        completed = completed[completed["model"].isin(model_filter)]
 
     rank = {m: i for i, m in enumerate(model_priority)}
     completed["_rank"] = completed["model"].map(lambda m: rank.get(m, len(model_priority)))
     completed = completed.sort_values(["_rank", "seed"]).drop(columns="_rank")
 
+    conditions = condition_order
+    if condition_filter is not None:
+        conditions = [(kind, cond) for kind, cond in condition_order if cond in condition_filter]
+
     plan: list[dict] = []
-    for kind, condition in condition_order:
+    for kind, condition in conditions:
         for row in completed.itertuples():
             agent = AGENT_BY_MODEL[row.model]
             checkpoint = Path(row.run_dir) / f"model_{CHECKPOINT_ITER}.pt"
@@ -242,10 +278,18 @@ def build_priority_plan(
             for trial in range(trials_per_condition):
                 if kind == "basic":
                     pattern, bpm_str = condition.rsplit("_", 1)
-                    cmd = build_rhythm_command(python_exe, checkpoint, agent, row.model, pattern, int(bpm_str), trial)
+                    cmd = build_rhythm_command(
+                        python_exe, checkpoint, agent, row.model, pattern, int(bpm_str), trial,
+                        task_id=task_id, eval_logs_root=eval_logs_root,
+                        mask_mode=mask_mode, mask_lo_s=mask_lo_s, mask_hi_s=mask_hi_s,
+                    )
                 elif kind == "gmd":
                     midi_path = next(p for p in GMD if Path(p).stem == condition)
-                    cmd = build_midi_command(python_exe, checkpoint, agent, row.model, midi_path, trial)
+                    cmd = build_midi_command(
+                        python_exe, checkpoint, agent, row.model, midi_path, trial,
+                        task_id=task_id, eval_logs_root=eval_logs_root,
+                        mask_mode=mask_mode, mask_lo_s=mask_lo_s, mask_hi_s=mask_hi_s,
+                    )
                 else:
                     raise ValueError(f"build_priority_plan: unknown kind {kind!r} for condition {condition!r}")
 
@@ -301,14 +345,71 @@ def main() -> None:
         default=str(REPO_ROOT / "eval_logs" / "eval_matrix_manifest.json"),
         help="JSON file used to record per-job status (only written when --dry_run is not set).",
     )
+    parser.add_argument(
+        "--task_override",
+        type=str,
+        default=None,
+        help="Override TASK_ID for every --priority job (e.g. the non-DR "
+             "Template-Porcaro-2026-ModelB-user0 task, for the non-DR re-eval). "
+             "Only consulted with --priority; build_eval_plan() always uses TASK_ID.",
+    )
+    parser.add_argument(
+        "--eval_logs_root",
+        type=str,
+        default="eval_logs",
+        help="Root output directory passed through to play_sim_rhythm.py/play_sim_midi.py's own "
+             "--eval_logs_root, so alternate eval passes (non-DR, trials>1, masking) never write "
+             "into the main eval_logs/ tree. Only consulted with --priority.",
+    )
+    parser.add_argument(
+        "--models",
+        type=str,
+        default=None,
+        help="Comma-separated model letters to restrict the --priority plan to (e.g. 'B,C,D,E'). "
+             "Default: all 5.",
+    )
+    parser.add_argument(
+        "--conditions",
+        type=str,
+        default=None,
+        help="Comma-separated condition names to restrict the --priority plan to (e.g. "
+             "'gmd_03_high_bpm138,gmd_04_extreme_bpm170'). Default: all of MONDAY_PRIORITY_CONDITIONS.",
+    )
+    parser.add_argument(
+        "--trials_per_condition",
+        type=int,
+        default=1,
+        help="Trials per (model,seed,condition) cell in the --priority plan (e.g. 5 for the "
+             "eval-noise study). Default 1, matching the original Monday batch.",
+    )
+    parser.add_argument(
+        "--mask_mode",
+        type=str,
+        default=None,
+        choices=["zero", "noise", "shuffle"],
+        help="Pass --mask_mode through to play_sim_rhythm.py/play_sim_midi.py for every --priority "
+             "job (the far-future lookahead ablation - normally combined with --models C). "
+             "Omit for no masking.",
+    )
+    parser.add_argument("--mask_lo_s", type=float, default=0.5, help="Passed through with --mask_mode.")
+    parser.add_argument("--mask_hi_s", type=float, default=1.0, help="Passed through with --mask_mode.")
     args = parser.parse_args()
 
     runs_df = discover_all_runs(args.logs_rsl_rl_root)
-    plan = (
-        build_priority_plan(runs_df)
-        if args.priority
-        else build_eval_plan(runs_df, heavy_r=args.heavy_trials)
-    )
+    if args.priority:
+        plan = build_priority_plan(
+            runs_df,
+            trials_per_condition=args.trials_per_condition,
+            task_id=args.task_override or TASK_ID,
+            eval_logs_root=args.eval_logs_root,
+            model_filter=args.models.split(",") if args.models else None,
+            condition_filter=args.conditions.split(",") if args.conditions else None,
+            mask_mode=args.mask_mode,
+            mask_lo_s=args.mask_lo_s,
+            mask_hi_s=args.mask_hi_s,
+        )
+    else:
+        plan = build_eval_plan(runs_df, heavy_r=args.heavy_trials)
 
     n_completed_runs = int((runs_df["status"] == "completed").sum())
     print(

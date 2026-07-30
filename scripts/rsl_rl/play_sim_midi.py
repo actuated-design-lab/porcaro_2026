@@ -16,6 +16,7 @@ if script_dir not in sys.path:
 
 from isaaclab.app import AppLauncher
 import cli_args
+import obs_mask
 
 # --- Argument Parser ---
 parser = argparse.ArgumentParser(description="Play RL agent with MIDI Input (Injection Mode).")
@@ -49,6 +50,22 @@ add_arg_if_missing(parser, "--use_frame_stacking", action="store_true",
                     help="Enable frame-stacking (finite history) observation.")
 add_arg_if_missing(parser, "--frame_stack_k", type=int, default=5,
                     help="Number of frames to stack.")
+add_arg_if_missing(parser, "--pam_tau_scale", type=float, default=None,
+                    help="Fix PAM time-constant multiplier to this single value, overriding "
+                         "pam_tau_scale_range DR sampling entirely. Must match the checkpoint's "
+                         "training-time value for the tau sweep (e.g. 0.5 / 1.0 / 2.0).")
+add_arg_if_missing(parser, "--eval_logs_root", type=str, default="eval_logs",
+                    help="Root directory for eval_logs/{run_tag}/{ckpt}/{condition}_trial{t}/ output "
+                         "(override to keep tau-sweep/non-DR/etc. eval runs from mixing with the "
+                         "main experiment matrix's eval_logs/).")
+add_arg_if_missing(parser, "--mask_mode", type=str, default="none", choices=list(obs_mask.MASK_MODES),
+                    help="Far-future lookahead ablation: overwrite the [--mask_lo_s, --mask_hi_s) "
+                         "window of the lookahead observation buffer with zeros/uniform noise/a "
+                         "random within-window shuffle, applied every step after env.reset()/step().")
+add_arg_if_missing(parser, "--mask_lo_s", type=float, default=0.5,
+                    help="Start of the masked lookahead time window (seconds).")
+add_arg_if_missing(parser, "--mask_hi_s", type=float, default=1.0,
+                    help="End of the masked lookahead time window (seconds).")
 
 try:
     cli_args.add_rsl_rl_args(parser)
@@ -177,7 +194,7 @@ def main(env_cfg, agent_cfg):
     midi_stem = os.path.splitext(os.path.basename(args_cli.midi))[0]  # 例: gmd_01_low_bpm80
     condition_tag = f"{midi_stem}_trial{args_cli.trial}"
 
-    eval_out_dir = os.path.join("eval_logs", run_tag, ckpt_name, condition_tag)
+    eval_out_dir = os.path.join(args_cli.eval_logs_root, run_tag, ckpt_name, condition_tag)
     os.makedirs(eval_out_dir, exist_ok=True)
 
     env_cfg.scene.num_envs = 1
@@ -205,6 +222,11 @@ def main(env_cfg, agent_cfg):
         env_cfg.use_frame_stacking = True
         env_cfg.frame_stack_k = args_cli.frame_stack_k
 
+    if args_cli.pam_tau_scale is not None:
+        env_cfg.pam_tau_scale_range = (args_cli.pam_tau_scale, args_cli.pam_tau_scale)
+        print(f"[Config] pam_tau_scale_range fixed to "
+              f"({args_cli.pam_tau_scale}, {args_cli.pam_tau_scale}) for tau sweep eval")
+
     dt_ctrl = env_cfg.sim.dt * env_cfg.decimation
     lookahead_steps = int(env_cfg.lookahead_horizon / dt_ctrl)
     base_obs_dim = 10 + lookahead_steps
@@ -214,6 +236,18 @@ def main(env_cfg, agent_cfg):
     print(f"[Config Override] lookahead={env_cfg.lookahead_horizon} "
         f"frame_stacking={env_cfg.use_frame_stacking} k={env_cfg.frame_stack_k} "
         f"-> observation_space={env_cfg.observation_space}")
+
+    mask_lo_idx, mask_hi_idx = obs_mask.compute_mask_range(
+        dt_ctrl, lookahead_steps, args_cli.mask_lo_s, args_cli.mask_hi_s
+    )
+    if args_cli.mask_mode != "none":
+        print(f"[Mask] mode={args_cli.mask_mode} window=[{args_cli.mask_lo_s}s, {args_cli.mask_hi_s}s) "
+              f"-> obs columns [{mask_lo_idx}, {mask_hi_idx}) of {env_cfg.observation_space}")
+        if env_cfg.use_frame_stacking:
+            raise ValueError(
+                "--mask_mode is only implemented for the non-frame-stacked observation layout "
+                "(obs_mask.compute_mask_range assumes obs_single, not the frame-stacking reshape)."
+            )
 
     env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
     
@@ -239,9 +273,38 @@ def main(env_cfg, agent_cfg):
     midi_injector = MidiInjector(args_cli.midi, dt_ctrl, env.unwrapped.device, args_cli.force_scale)
 
     obs, _ = env.reset()
+
+    # ★安全確認: pam_tau_scale が current_tau_scale (pam.py::PAMChannel) に
+    # 実際に反映されているかをここで検証する。reset()/reset_idx()がこれを
+    # 設定するので、env.reset()直後でないと値がNoneのまま。
+    if args_cli.pam_tau_scale is not None:
+        raw_env = env.unwrapped
+        ctrl = raw_env.action_controller
+        expected = args_cli.pam_tau_scale
+        for ch_name in ("ch_DF", "ch_F", "ch_G"):
+            ch = getattr(ctrl, ch_name)
+            actual = ch.current_tau_scale
+            assert actual is not None, f"{ch_name}.current_tau_scale is None after env.reset()"
+            assert torch.allclose(actual, torch.full_like(actual, expected)), (
+                f"[Tau Safety Check] {ch_name}.current_tau_scale={actual.tolist()} != expected {expected} "
+                f"-- pam_tau_scale_range override did NOT reach the actuator."
+            )
+        tau_p_axis = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]
+        tau_vals = [0.043, 0.045, 0.060, 0.066, 0.094, 0.131]
+        print(f"[Tau Safety Check] PASSED: ch_DF/F/G.current_tau_scale == {expected} for all envs")
+        for p, base in zip(tau_p_axis[::2], tau_vals[::2]):
+            print(f"  illustrative: P_cmd={p} tau_base={base:.4f} "
+                  f"tau_final(expected)={expected * base:.4f}  (tau_final = tau_scale * tau_base)")
+
+    if args_cli.mask_mode != "none":
+        obs = obs_mask.apply_mask(obs, args_cli.mask_mode, mask_lo_idx, mask_hi_idx)
+        obs_t = obs_mask.policy_tensor(obs)
+        print(f"[Mask] obs.shape={tuple(obs_t.shape)} post-mask sample obs[0, {mask_lo_idx}:{mask_lo_idx+3}]="
+              f"{obs_t[0, mask_lo_idx:mask_lo_idx+3].tolist()}")
+
     if hasattr(policy, "reset_memory"): policy.reset_memory()
     midi_injector.inject_to_env(env)
-    
+
     print("="*60)
     print(f" Sim-Verification Started (MIDI Mode)")
     step_count = 0
@@ -252,6 +315,8 @@ def main(env_cfg, agent_cfg):
             with torch.inference_mode():
                 actions = policy(obs)
                 obs, _, dones, _ = env.step(actions)
+                if args_cli.mask_mode != "none":
+                    obs = obs_mask.apply_mask(obs, args_cli.mask_mode, mask_lo_idx, mask_hi_idx)
                 step_count += 1
 
                 # --- 変更箇所: 終了判定の順序とマージン ---

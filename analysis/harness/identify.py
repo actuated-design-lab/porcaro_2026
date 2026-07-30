@@ -89,3 +89,27 @@ EXP_TAG_TO_MODEL: dict[str, str] = {
     "mlp_plain_lookahead0.5": "D",
     "mlp_framestack_k5_lookahead0.5": "E",
 }
+
+
+def classify_tau_cell(env_y: dict) -> tuple[float, float] | None:
+    """Map a tau-sweep run's env.yaml to its (pam_tau_scale, lookahead_horizon) cell.
+
+    Deliberately does not use classify_model() - tau-sweep runs live under a
+    separate logs/rsl_rl_tau_sweep/ root (see train.py's --pam_tau_scale ->
+    logs_root_dir redirect) precisely so they are never mistaken for A-E
+    model runs; this function is the tau-sweep-only counterpart.
+
+    Returns None (not a tau-sweep cell) if pam_tau_scale_range is missing or
+    not degenerate (low != high) - a non-degenerate range means DR sampling
+    was still active for tau, so the run cannot be labeled with a single tau
+    value and should be reported as unclassified rather than silently
+    mislabeled.
+    """
+    tau_range = env_y.get("pam_tau_scale_range")
+    if tau_range is None:
+        return None
+    low, high = float(tau_range[0]), float(tau_range[1])
+    if low != high:
+        return None
+    lh = round(float(env_y["lookahead_horizon"]), 3)
+    return (low, lh)
