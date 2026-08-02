@@ -48,7 +48,8 @@ import cli_args  # isort: skip
 parser = argparse.ArgumentParser(description="Export a single RSL-RL checkpoint to ONNX (no sim rollout).")
 parser.add_argument("--task", type=str, required=True, help="Task name.")
 parser.add_argument("--agent", type=str, default="rsl_rl_cfg_entry_point", help="Agent config entry point.")
-parser.add_argument("--checkpoint", type=str, required=True, help="Path to model_*.pt")
+# --checkpoint 自体は cli_args.add_rsl_rl_args() が追加する(default=None、下記67行目)。
+# ここで再定義すると argparse が "conflicting option string" で落ちるので追加しない。
 parser.add_argument("--num_envs", type=int, default=1, help="Number of envs (env構築に必要。1で十分)。")
 parser.add_argument("--seed", type=int, default=None, help="Env seed (export結果には影響しない)。")
 
@@ -68,6 +69,8 @@ cli_args.add_rsl_rl_args(parser)
 AppLauncher.add_app_launcher_args(parser)
 
 args_cli, hydra_args = parser.parse_known_args()
+if not args_cli.checkpoint:
+    parser.error("--checkpoint is required (cli_args.add_rsl_rl_args() defines it with default=None).")
 sys.argv = [sys.argv[0]] + hydra_args
 
 app_launcher = AppLauncher(args_cli)

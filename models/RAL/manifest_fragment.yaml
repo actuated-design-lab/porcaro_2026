@@ -1,0 +1,201 @@
+RAL:
+  A_seed1:
+    file: RAL/modelA_seed1.onnx
+    arch: lstm
+    lookahead_horizon: 0.1
+    frame_stack: 1
+    label: 'A: LSTM, lookahead=0.1s'
+    seed: 1
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-07_19-17-38_seed1/model_1499.pt
+  A_seed2:
+    file: RAL/modelA_seed2.onnx
+    arch: lstm
+    lookahead_horizon: 0.1
+    frame_stack: 1
+    label: 'A: LSTM, lookahead=0.1s'
+    seed: 2
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-08_00-06-00_seed2/model_1499.pt
+  A_seed3:
+    file: RAL/modelA_seed3.onnx
+    arch: lstm
+    lookahead_horizon: 0.1
+    frame_stack: 1
+    label: 'A: LSTM, lookahead=0.1s'
+    seed: 3
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-08_05-00-58_seed3/model_1499.pt
+  A_seed4:
+    file: RAL/modelA_seed4.onnx
+    arch: lstm
+    lookahead_horizon: 0.1
+    frame_stack: 1
+    label: 'A: LSTM, lookahead=0.1s'
+    seed: 4
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-08_09-54-22_seed4/model_1499.pt
+  A_seed5:
+    file: RAL/modelA_seed5.onnx
+    arch: lstm
+    lookahead_horizon: 0.1
+    frame_stack: 1
+    label: 'A: LSTM, lookahead=0.1s'
+    seed: 5
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-08_14-47-17_seed5/model_1499.pt
+  B_seed1:
+    file: RAL/modelB_seed1.onnx
+    arch: lstm
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'B: LSTM, lookahead=0.5s'
+    seed: 1
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-08_19-38-34_seed1/model_1499.pt
+  B_seed2:
+    file: RAL/modelB_seed2.onnx
+    arch: lstm
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'B: LSTM, lookahead=0.5s'
+    seed: 2
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-09_00-32-00_seed2/model_1499.pt
+  B_seed3:
+    file: RAL/modelB_seed3.onnx
+    arch: lstm
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'B: LSTM, lookahead=0.5s'
+    seed: 3
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-09_05-24-11_seed3/model_1499.pt
+  B_seed4:
+    file: RAL/modelB_seed4.onnx
+    arch: lstm
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'B: LSTM, lookahead=0.5s'
+    seed: 4
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-09_10-16-24_seed4/model_1499.pt
+  B_seed5:
+    file: RAL/modelB_seed5.onnx
+    arch: lstm
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'B: LSTM, lookahead=0.5s'
+    seed: 5
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-09_15-10-48_seed5/model_1499.pt
+  C_seed1:
+    file: RAL/modelC_seed1.onnx
+    arch: lstm
+    lookahead_horizon: 1.0
+    frame_stack: 1
+    label: 'C: LSTM, lookahead=1.0s'
+    seed: 1
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-09_20-08-53_seed1/model_1499.pt
+  C_seed2:
+    file: RAL/modelC_seed2.onnx
+    arch: lstm
+    lookahead_horizon: 1.0
+    frame_stack: 1
+    label: 'C: LSTM, lookahead=1.0s'
+    seed: 2
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-10_01-02-03_seed2/model_1499.pt
+  C_seed3:
+    file: RAL/modelC_seed3.onnx
+    arch: lstm
+    lookahead_horizon: 1.0
+    frame_stack: 1
+    label: 'C: LSTM, lookahead=1.0s'
+    seed: 3
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-10_05-58-08_seed3/model_1499.pt
+  C_seed4:
+    file: RAL/modelC_seed4.onnx
+    arch: lstm
+    lookahead_horizon: 1.0
+    frame_stack: 1
+    label: 'C: LSTM, lookahead=1.0s'
+    seed: 4
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-10_10-54-15_seed4/model_1499.pt
+  C_seed5:
+    file: RAL/modelC_seed5.onnx
+    arch: lstm
+    lookahead_horizon: 1.0
+    frame_stack: 1
+    label: 'C: LSTM, lookahead=1.0s'
+    seed: 5
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-07-10_15-48-14_seed5/model_1499.pt
+  D_seed1:
+    file: RAL/modelD_seed1.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'D: MLP, lookahead=0.5s'
+    seed: 1
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-10_20-49-12_seed1/model_1499.pt
+  D_seed2:
+    file: RAL/modelD_seed2.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'D: MLP, lookahead=0.5s'
+    seed: 2
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-11_01-27-19_seed2/model_1499.pt
+  D_seed3:
+    file: RAL/modelD_seed3.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'D: MLP, lookahead=0.5s'
+    seed: 3
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-11_06-05-24_seed3/model_1499.pt
+  D_seed4:
+    file: RAL/modelD_seed4.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'D: MLP, lookahead=0.5s'
+    seed: 4
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-11_10-30-50_seed4/model_1499.pt
+  D_seed5:
+    file: RAL/modelD_seed5.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 1
+    label: 'D: MLP, lookahead=0.5s'
+    seed: 5
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-11_15-08-27_seed5/model_1499.pt
+  E_seed1:
+    file: RAL/modelE_seed1.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 5
+    label: 'E: MLP+framestack(k=5), lookahead=0.5s'
+    seed: 1
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-11_19-36-51_seed1/model_1499.pt
+  E_seed2:
+    file: RAL/modelE_seed2.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 5
+    label: 'E: MLP+framestack(k=5), lookahead=0.5s'
+    seed: 2
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-12_00-16-35_seed2/model_1499.pt
+  E_seed3:
+    file: RAL/modelE_seed3.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 5
+    label: 'E: MLP+framestack(k=5), lookahead=0.5s'
+    seed: 3
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-12_04-55-58_seed3/model_1499.pt
+  E_seed4:
+    file: RAL/modelE_seed4.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 5
+    label: 'E: MLP+framestack(k=5), lookahead=0.5s'
+    seed: 4
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-12_09-36-40_seed4/model_1499.pt
+  E_seed5:
+    file: RAL/modelE_seed5.onnx
+    arch: mlp
+    lookahead_horizon: 0.5
+    frame_stack: 5
+    label: 'E: MLP+framestack(k=5), lookahead=0.5s'
+    seed: 5
+    checkpoint: /home/actuated/my_isaaclab_projects/porcaro_2026/logs/rsl_rl/porcaro_rslrl_mlp_modelB_DR_lookahead5/2026-07-12_14-16-35_seed5/model_1499.pt
