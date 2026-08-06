@@ -138,10 +138,29 @@ def main() -> int:
                              trial=trial_from_tag(cond_tag), bpm=bpm, n_rows=len(ts)))
             continue
 
-        st = extract_strikes(ts, bpm=bpm, target_ref=TARGET_REF, tol_ms=args.tol_ms,
-                             min_strike_frac=args.min_strike_frac)
-        if st.empty:
+        # ★ play_sim_rhythm.py 系のログ（double_160bpm）は 1ファイルに複数エピソードが
+        #   連結されており、time_s が各エピソードの先頭で 0 に戻る。そのまま処理すると
+        #   (a) find_peaks がエピソード境界をまたぎ、(b) 時刻が重複するため
+        #   エピソード1の目標がエピソード2/3の打撃とマッチしうる（候補が3倍になる）。
+        #   時刻が戻る点で分割し、エピソードごとに独立に集計して平均する。
+        #   play_sim_midi.py 系（GMD）は1エピソードなので分割は起きない。
+        seg_bounds = np.r_[0, np.nonzero(np.diff(ts["time_s"].to_numpy(float)) < 0)[0] + 1,
+                           len(ts)]
+        segs = [ts.iloc[a:b] for a, b in zip(seg_bounds[:-1], seg_bounds[1:]) if b - a > 10]
+        sts = []
+        for seg in segs:
+            try:
+                one = extract_strikes(seg.reset_index(drop=True), bpm=bpm,
+                                      target_ref=TARGET_REF, tol_ms=args.tol_ms,
+                                      min_strike_frac=args.min_strike_frac)
+            except Exception:  # noqa: BLE001
+                continue
+            if not one.empty:
+                sts.append(one)
+        if not sts:
             skipped.append((str(p), "打点が検出されない")); continue
+        n_ep = len(sts)
+        st = pd.concat(sts, ignore_index=True)
 
         thr = args.min_strike_frac * TARGET_REF
         hit = st[st["peak_force"] >= thr]
@@ -154,7 +173,7 @@ def main() -> int:
 
         rows.append(dict(
             model=model, seed=seed, task=cond, trial=trial_from_tag(cond_tag), bpm=bpm,
-            n_strikes=len(st),
+            n_episodes=n_ep, n_strikes=len(st),
             success_rate=float(st["success"].mean()),
             abs_err_ms_mean=float(hit["timing_err_ms"].abs().mean()) if len(hit) else np.nan,
             err_ms_mean=float(hit["timing_err_ms"].mean()) if len(hit) else np.nan,
