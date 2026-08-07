@@ -116,8 +116,36 @@ def main() -> int:
     # --- §IV-C2 1) 打点分解（Model A の「打てない率」が実機で倍増）---
     st_a = D.hw_strikes(); st_a = st_a[st_a.midi.isin(D.MAIN_HW)]
     ss_a = D.sim_strikes(); ss_a = ss_a[ss_a.task.isin(D.MAIN_SIM)]
-    chk("1) A 打てない率 実機", (st_a[st_a.model == "A"].peak_force < 1.0).mean(), 0.65, 0.006)
-    chk("1) A 打てない率 sim", (ss_a[ss_a.model == "A"].peak_force < 1.0).mean(), 0.30, 0.006)
+    # ★シード単位の二段平均で取る（本文が宣言している解析単位。プール平均だと
+    #   実機 64.9% / sim 29.6% になり、本文の規約と食い違う）。
+    def _nostrike(d, tcol, model="A"):
+        x = d[d.model == model]
+        return float(x.assign(m=x.peak_force < 1.0).groupby(["seed", tcol]).m.mean()
+                     .groupby("seed").mean().mean())
+    chk("1) A 打てない率 実機", _nostrike(st_a, "midi"), 0.621, 0.003)
+    chk("1) A 打てない率 sim", _nostrike(ss_a, "task"), 0.331, 0.003)
+
+    # --- §IV-B フラグ付きランを除外した場合の Model D（二段平均） ---
+    import glob, os
+    fl = {}
+    for f in glob.glob("/home/claude/research/jetson_project/results/RAL/**/deploy_*.csv",
+                       recursive=True):
+        try:
+            c = pd.read_csv(f, usecols=["force_N"])
+        except Exception:
+            continue
+        if len(c) <= 10:
+            continue
+        fl[os.path.basename(f)] = (float(c.force_N.median()) < -5.0
+                                   or float(c.force_N.max() - c.force_N.min()) < 10.0)
+    if fl:
+        hwf = hw.copy()
+        hwf["flag"] = hwf.file.astype(str).str.replace(r"^.*/", "", regex=True).map(fl)
+        keep = hwf[(hwf.midi.isin(D.MAIN_HW)) & (hwf.flag != True)]  # noqa: E712
+        vD = D.seed_level(keep, "midi", D.MAIN_HW)
+        vD = vD[vD.model == "D"].success_rate
+        chk("IV-B フラグ除外時の D", vD.mean(), 0.357, 0.002)
+        RESULTS.append(("IV-B フラグ除外で残る D のシード数", str(len(vD)), "4", len(vD) == 4))
 
     # --- §IV-C2 3) ダブルストロークの1打目/2打目 打撃力 ---
     dd = D.hw_strikes(); dd = dd[(dd.midi == D.DOUBLE_HW) & dd.model.isin(["B", "C", "E"])]
