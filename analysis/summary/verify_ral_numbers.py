@@ -45,34 +45,35 @@ def main() -> int:
     Hg = D.seed_level(hw, "midi", D.GMD03_HW)
 
     # --- §IV-C2 1) 予期 / 2) 記憶 / 3) 再帰 の本文値 ---
-    for m, mu, sd in [("A", 0.123, 0.048), ("B", 0.446, 0.126), ("C", 0.453, 0.165),
-                      ("D", 0.292, 0.247), ("E", 0.511, 0.103)]:
+    for m, mu, sd in [("A", 0.123, 0.048), ("B", 0.445, 0.118), ("C", 0.453, 0.165),
+                      ("D", 0.264, 0.201), ("E", 0.505, 0.054)]:
         a, b = D.mean_sd(H, m)
         chk(f"IV-C2 実機 {m} mean", a, mu)
         chk(f"IV-C2 実機 {m} sd", b, sd)
 
-    d, p = D.ttest(H, "A", "B"); chk("1) A→B 差", d, 0.323); rng("1) p(A,B)", p, 0.0, 0.001)
-    d, p = D.ttest(H, "B", "C"); chk("2) B vs C 差", d, 0.007); chk("2) p(B,C)", p, 0.945, 0.002)
-    d, p = D.ttest(H, "D", "E"); chk("3) D vs E 差", d, 0.219); chk("3) p(D,E)", p, 0.104, 0.002)
+    d, p = D.ttest(H, "A", "B"); chk("1) A→B 差", d, 0.322); rng("1) p(A,B)", p, 0.0, 0.001)
+    d, p = D.ttest(H, "B", "C"); chk("2) B vs C 差", d, 0.008); chk("2) p(B,C)", p, 0.931, 0.002)
+    d, p = D.ttest(H, "D", "E"); chk("3) D vs E 差", d, 0.240); chk("3) p(D,E)", p, 0.033, 0.002)
     vd = H[H.model == "D"].success_rate.values; ve = H[H.model == "E"].success_rate.values
-    chk("3) Cohen d", (ve.mean() - vd.mean()) / np.sqrt((vd.var(ddof=1) + ve.var(ddof=1)) / 2), 1.16, 0.02)
-    d, p = D.ttest(H, "B", "E"); chk("4) E vs B 差", d, 0.065); chk("4) p(E,B)", p, 0.398, 0.003)
+    chk("3) Cohen d", (ve.mean() - vd.mean()) / np.sqrt((vd.var(ddof=1) + ve.var(ddof=1)) / 2), 1.63, 0.02)
+    d, p = D.ttest(H, "B", "E"); chk("4) E vs B 差", d, 0.060); chk("4) p(E,B)", p, 0.332, 0.003)
     vb = H[H.model == "B"].success_rate.values
     se = np.sqrt(vb.var(ddof=1) / 5 + ve.var(ddof=1) / 5)
-    chk("4) 95%CI 下", d - 2.306 * se, -0.103, 0.002)
-    chk("4) 95%CI 上", d + 2.306 * se, 0.233, 0.002)
+    chk("4) 95%CI 下", d - 2.306 * se, -0.074, 0.002)
+    chk("4) 95%CI 上", d + 2.306 * se, 0.194, 0.002)
 
     # --- §IV-C 検出力 ---
     pooled = np.sqrt((vb.var(ddof=1) + ve.var(ddof=1)) / 2)
-    chk("IV-C pooled SD", pooled, 0.115, 0.002)
-    chk("IV-C MDE", (2.306 + 1.533) * pooled * np.sqrt(2 / 5), 0.28, 0.005)
+    chk("IV-C pooled SD", pooled, 0.092, 0.002)
+    chk("IV-C MDE", (2.306 + 1.533) * pooled * np.sqrt(2 / 5), 0.223, 0.005)
 
     # --- §IV-C2 打てない率 ---
     st = D.hw_strikes(); st = st[st.midi.isin(D.MAIN_HW)]
-    ns = st.assign(m=st.peak_force < 1.0).groupby(["model", "seed"])["m"].mean().unstack(0)
-    chk("2) 打てない率 D", ns["D"].mean(), 0.47, 0.006)
-    chk("2) 打てない率 E", ns["E"].mean(), 0.14, 0.006)
-    chk("2) p(打てない率)", stats.ttest_ind(ns["D"], ns["E"]).pvalue, 0.157, 0.004)
+    ns = (st.assign(m=st.peak_force < 1.0).groupby(["model", "seed", "midi"])["m"].mean()
+          .groupby(["model", "seed"]).mean().unstack(0))
+    chk("2) 打てない率 D", ns["D"].mean(), 0.51, 0.006)
+    chk("2) 打てない率 E", ns["E"].mean(), 0.20, 0.006)
+    chk("2) p(打てない率)", stats.ttest_ind(ns["D"], ns["E"]).pvalue, 0.110, 0.004)
 
     # --- §IV-C2 D の破綻シード（sim と実機で同一）---
     for lab, df in [("sim", Sg), ("実機", Hg)]:
@@ -82,7 +83,7 @@ def main() -> int:
 
     # --- §IV-C2 4) レンジと順位相関 ---
     rng("4) 実機レンジ 下", min(D.mean_sd(H, m)[0] for m in D.MODELS), 0.12, 0.13)
-    rng("4) 実機レンジ 上", max(D.mean_sd(H, m)[0] for m in D.MODELS), 0.505, 0.515)
+    rng("4) 実機レンジ 上", max(D.mean_sd(H, m)[0] for m in D.MODELS), 0.500, 0.510)
     rng("4) sim レンジ 下", min(D.mean_sd(S, m)[0] for m in D.MODELS), 0.565, 0.575)
     rng("4) sim レンジ 上", max(D.mean_sd(S, m)[0] for m in D.MODELS), 0.782, 0.790)
     rho, prho = stats.spearmanr([D.mean_sd(S, m)[0] for m in D.MODELS],
@@ -90,8 +91,8 @@ def main() -> int:
     chk("4) 順位相関 rho", rho, 0.90, 0.01); rng("4) p(rho)", prho, 0.0, 0.05)
     drops = [(D.mean_sd(S, m)[0] - D.mean_sd(H, m)[0]) / D.mean_sd(S, m)[0] for m in D.MODELS]
     chk("4) A の低下率", drops[0], 0.78, 0.006)
-    rng("4) 他方策の低下率 下", min(drops[1:]), 0.345, 0.355)
-    rng("4) 他方策の低下率 上", max(drops[1:]), 0.535, 0.545)
+    rng("4) 他方策の低下率 下", min(drops[1:]), 0.355, 0.365)
+    rng("4) 他方策の低下率 上", max(drops[1:]), 0.575, 0.585)
 
     # --- マスクアブレーション ---
     b0 = sim[sim.model == "C"].groupby("seed").success_rate.mean()
@@ -112,9 +113,30 @@ def main() -> int:
     rng("IV-B アンカー他3セッション 下", min(anchors.values()), 0.445, 0.455)
     rng("IV-B アンカー他3セッション 上", max(anchors.values()), 0.530, 0.540)
 
-    # --- §IV-C2 冒頭 single8 の幅 ---
-    g = hw[hw.midi == D.SINGLE_HW].groupby(["model", "seed"]).success_rate.mean().unstack(0)
-    chk("IV-C2 single8 の幅", g.mean().max() - g.mean().min(), 0.35, 0.006)
+    # --- §IV-C2 1) 打点分解（Model A の「打てない率」が実機で倍増）---
+    st_a = D.hw_strikes(); st_a = st_a[st_a.midi.isin(D.MAIN_HW)]
+    ss_a = D.sim_strikes(); ss_a = ss_a[ss_a.task.isin(D.MAIN_SIM)]
+    chk("1) A 打てない率 実機", (st_a[st_a.model == "A"].peak_force < 1.0).mean(), 0.65, 0.006)
+    chk("1) A 打てない率 sim", (ss_a[ss_a.model == "A"].peak_force < 1.0).mean(), 0.30, 0.006)
+
+    # --- §IV-C2 3) ダブルストロークの1打目/2打目 打撃力 ---
+    dd = D.hw_strikes(); dd = dd[(dd.midi == D.DOUBLE_HW) & dd.model.isin(["B", "C", "E"])]
+    dd = dd[dd.peak_force >= 1.0].copy()
+    dd["pos"] = np.where(dd.strike_idx % 2 == 0, "1st", "2nd")
+    g = dd.groupby(["model", "seed", "pos"]).peak_force.mean().unstack(-1).dropna()
+    chk("3) 1打目 打撃力[N]", g["1st"].mean(), 27.1, 0.05)
+    chk("3) 2打目 打撃力[N]", g["2nd"].mean(), 11.3, 0.05)
+    rng("3) p(1打目,2打目)", stats.ttest_rel(g["2nd"], g["1st"]).pvalue, 0.0, 0.001)
+
+    # --- §IV-D tau スイープ ---
+    tp = D.tau_summary().groupby(["tau", "lh", "seed"], as_index=False).success_rate.mean()
+    cell = tp.groupby(["tau", "lh"]).success_rate.mean()
+    for (t, l), want in [((0.5, 0.5), 0.903), ((2.0, 0.5), 0.545), ((2.0, 1.0), 0.726),
+                         ((2.0, 2.0), 0.738), ((0.5, 0.25), 0.847), ((0.5, 0.1), 0.594)]:
+        chk(f"IV-D tau={t} lh={l}", cell[(t, l)], want, 0.002)
+    lo = tp[(tp.tau == 0.5) & (tp.lh == 0.5)].success_rate.values
+    hi = tp[(tp.tau == 2.0) & (tp.lh == 0.5)].success_rate.values
+    chk("IV-D p(tau0.5,tau2.0 @lh0.5)", stats.ttest_ind(lo, hi).pvalue, 0.145, 0.003)
 
     w = max(len(r[0]) for r in RESULTS) + 2
     print(f"{'項目':<{w}} {'算出値':>18} {'本文の記載':>18}   判定")

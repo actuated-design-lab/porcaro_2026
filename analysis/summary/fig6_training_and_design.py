@@ -157,6 +157,8 @@ def main() -> int:
     ap = base_argparser("Fig.6: 学習と設計上の検証")
     ap.add_argument("--with_curves", action="store_true",
                     help="学習曲線を含む2段幅3パネル版（補足資料向け）")
+    ap.add_argument("--with_dr", action="store_true",
+                    help="評価時DR ON/OFF のパネルを足す（既定は落とす）")
     ap.add_argument("--height", type=float, default=1.5)
     args = ap.parse_args()
     apply_style(args.fontsize)
@@ -170,10 +172,19 @@ def main() -> int:
         res = {"a": panel_learning(axes[0])}
         panel_tag(axes[0], "(a)", x=-0.16)
         tags, panels = "bc", axes[1:]
-    else:
+    elif args.with_dr:
         fig, axes = plt.subplots(1, 2, figsize=(COL_W, args.height),
                                  gridspec_kw=dict(width_ratios=[1.0, 1.05], wspace=0.72))
         res, tags, panels = {}, "ab", axes
+    else:
+        # ★既定は tau スイープのみ。DR ON/OFF は「全モデルで有意差なし」を棒で
+        #   見せるだけで情報量が薄く、数値は本文1文で足りる。紙面を返す。
+        fig, ax = plt.subplots(figsize=(COL_W * 0.62, args.height))
+        res = {"": panel_tau(ax, fig)}
+        save(fig, args.outdir, "fig6_training_and_design", args.format)
+        import json
+        print(json.dumps(res, indent=2, ensure_ascii=False, default=float))
+        return 0
     res[tags[0]] = panel_tau(panels[0], fig); panel_tag(panels[0], f"({tags[0]})", x=-0.30)
     res[tags[1]] = panel_variance(panels[1]); panel_tag(panels[1], f"({tags[1]})", x=-0.34)
 

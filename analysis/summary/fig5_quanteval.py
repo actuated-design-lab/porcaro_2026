@@ -206,16 +206,75 @@ def panel_mask(ax) -> dict:
     return out
 
 
-PANELS = {"a": panel_overview, "b": panel_timing,
-          "c": panel_memory_seeds, "d": panel_mask}
+# --------------------------------------------------------------- panel (d)
+OUTCOME = [("success", "#009E73"), ("late/early", "#E69F00"), ("no strike", "#BFBFBF")]
+
+
+def panel_failure(ax) -> dict:
+    """打点1つ1つを3つの排他的な結末に分解する（sim / 実機を並べる）。
+
+    成功率という1つの数字だと「なぜ 0.45 なのか」が見えない。分解すると
+    A と D の失敗が「遅い」ではなく「打てていない」であること、しかも
+    その割合が実機で倍増することが1枚で言える。B/C/E の残余はタイミング。
+    ★no-strike rate は §IV-C の3指標のうちの1つで、これまで本文の数字
+      （D 0.47 / E 0.14）だけだった。ここで図になる。
+    """
+    def decomp(df, task_col, tasks, force_col="peak_force"):
+        d = df[df[task_col].isin(tasks)].copy()
+        struck = d[force_col] >= 1.0
+        ok = struck & (d.timing_err_ms.abs() <= 30)
+        d["cat"] = np.where(~struck, "no strike",
+                            np.where(ok, "success", "late/early"))
+        t = d.groupby(["model", "cat"]).size().unstack(1).reindex(columns=[c for c, _ in OUTCOME]).fillna(0)
+        return t.div(t.sum(axis=1), axis=0)
+
+    sim = decomp(D.sim_strikes(), "task", D.MAIN_SIM)
+    hw = decomp(D.hw_strikes(), "midi", D.MAIN_HW)
+    xs = np.arange(len(D.MODELS))
+    w = 0.36
+    out = {}
+    for k, (lab, t) in enumerate([("S", sim), ("H", hw)]):
+        pos = xs + (k - 0.5) * w
+        bottom = np.zeros(len(D.MODELS))
+        for cat, col in OUTCOME:
+            v = t.reindex(D.MODELS)[cat].values.astype(float)
+            ax.bar(pos, v, w * 0.9, bottom=bottom, color=col, zorder=3,
+                   edgecolor="white", linewidth=0.5,
+                   label=cat if k == 0 else None)
+            bottom += v
+        out[lab] = {m: {c: round(float(t.loc[m, c]), 3) for c, _ in OUTCOME}
+                    for m in D.MODELS if m in t.index}
+        for p_ in pos:
+            ax.text(p_, -0.06, lab, ha="center", va="top", color=INK_MUTED,
+                    fontsize=plt.rcParams["font.size"] - 3.0)
+    ax.set_xticks(xs, D.MODELS)
+    ax.tick_params(axis="x", pad=9)
+    ax.set_xlabel("Model      (S: simulation,  H: hardware)", labelpad=1)
+    ax.set_ylabel("Fraction of onsets")
+    ax.set_ylim(0, 1.0)
+    ax.set_yticks([0, 0.5, 1.0])
+    ax.legend(loc="lower left", bbox_to_anchor=(0.0, 1.0), ncol=3,
+              fontsize=plt.rcParams["font.size"] - 2.0, handlelength=1.1,
+              columnspacing=1.0, borderpad=0.2)
+    tidy(ax, ygrid=False)
+    return out
+
+
+# 本文に載せる並び。★Model D のシード別(panel_memory_seeds)とマスク(panel_mask)は
+#   本文の記述だけで足り、図にすると紙面を食うだけなので既定から外してある。
+#   --panel seeds / --panel mask で単体書き出しは可能。
+MAIN_ORDER = [panel_overview, panel_timing, panel_failure]
+PANELS = {"a": panel_overview, "b": panel_timing, "c": panel_failure,
+          "seeds": panel_memory_seeds, "mask": panel_mask}
 
 
 def main() -> int:
     ap = base_argparser(__doc__.splitlines()[0])
-    ap.add_argument("--panel", default="all", choices=["all", "a", "b", "c", "d"],
+    ap.add_argument("--panel", default="all",
+                    choices=["all", "a", "b", "c", "seeds", "mask"],
                     help="単一パネルだけを別ファイルに書き出す（スライド用）")
-    ap.add_argument("--height", type=float, default=4.42,
-                    help="4パネル版の高さ [in]。★4.7 にすると本文が9ページになる")
+    ap.add_argument("--height", type=float, default=3.55,
+                    help="本文版(3パネル)の高さ [in]")
     args = ap.parse_args()
     apply_style(args.fontsize)
 
@@ -226,11 +285,12 @@ def main() -> int:
         print(res)
         return 0
 
-    fig, axes = plt.subplots(4, 1, figsize=(COL_W, args.height), layout="constrained")
+    fig, axes = plt.subplots(len(MAIN_ORDER), 1, figsize=(COL_W, args.height),
+                             layout="constrained")
     fig.get_layout_engine().set(hspace=0.10, h_pad=0.02, w_pad=0.02)
     res = {}
-    for tag, ax in zip("abcd", axes):
-        res[tag] = PANELS[tag](ax)
+    for tag, fn, ax in zip("abc", MAIN_ORDER, axes):
+        res[tag] = fn(ax)
         panel_tag(ax, f"({tag})", x=-0.185, y=1.22)
     save(fig, args.outdir, "fig5_quanteval", args.format)
 

@@ -43,11 +43,26 @@ SMOOTH_WINDOW = 15   # 学習曲線の移動平均。生のままだと5本重�
 
 # sim と実機で共通する条件だけ。(sim側のtask名, 実機側のmidi名, 表示名)
 # (sim側task, 実機側midi, 表示名, 学習分布内か)  None = そのドメインでは未評価
+# (sim側task, 実機側midi, 表示名, 学習分布内か, 実機セッション)
+# ★GMD 170 は第4セッションで撮っていないので、先読み軸のセッション(s2)から取る。
+#   s2 には A/B/C しか無い（D/E は腱脱落で除外した s1 にしかないので使わない）。
+# ★single 8th は sim 側の評価が存在しない（どの eval セットにも single8 は無い）。
+# ★single 8th は落とした。sim 側の評価が存在せず、実機の 160 BPM 版は IROS 期の
+#   1シードのモデル（しかも E が無い）にしかないため、5シードを単位にした本図と
+#   統計的に同じものにならない。120 BPM 版は 12打点しかなく検出力も無い。
+# ★実機セッションはモデルごとに指定できる。GMD 170 は第4セッションで撮っていないので
+#   A/B/C は先読み軸のセッション(s2)、D/E は s1 から取る。
+#   ☆s1 は腱脱落で劣化していたセッションで、同じ条件の B アンカーが 0.122（s2 は 0.423）。
+#     つまり D/E の値は他の3本と同じ土俵に乗っていない。図では区別せず（棒は実線のまま）、
+#     キャプションと §IV-B の本文で断る方針。
+#     SUSPECT_SESSIONS にセッション名を入れるとその棒だけ斜線になる（既定は使わない）。
+SUSPECT_SESSIONS: set[str] = set()
+
 CONDITIONS = [
-    (None, "test_single8_bpm120.mid", "single 8th, 120 BPM", True),
-    ("double_160bpm", "test_double_bpm160.mid", "double, 160 BPM", True),
-    ("gmd_03_high_bpm138", "gmd_03_high_bpm138.mid", "GMD, 138 BPM", False),
-    ("gmd_04_extreme_bpm170", None, "GMD, 170 BPM", False),
+    ("double_160bpm", "test_double_bpm160.mid", "double, 160 BPM", True, {"*": "s4"}),
+    ("gmd_03_high_bpm138", "gmd_03_high_bpm138.mid", "GMD, 138 BPM", False, {"*": "s4"}),
+    ("gmd_04_extreme_bpm170", "gmd_04_extreme_bpm170.mid", "GMD, 170 BPM", False,
+     {"A": "s2", "B": "s2", "C": "s2", "D": "s1", "E": "s1"}),
 ]
 
 
@@ -87,13 +102,15 @@ def panel_learning_curves(ax) -> dict:
 
 
 # ----------------------------------------------------------- panel (b)/(c)
-def panel_condition(ax, sim_task, hw_task, title, in_dist) -> dict:
+def panel_condition(ax, sim_task, hw_task, title, in_dist, sessions=None) -> dict:
     """1つのリズムについて、5モデルを sim と実機で並べる。
 
-    片方のドメインでしか評価していない条件は、その側の棒を描かない。
-    並べられないものを並べたように見せない。
+    sessions は {model: session} の辞書（"*" で全モデル指定）。SUSPECT_SESSIONS の
+    セッションから来た棒は斜線にして、健全なリグの値と同一視されないようにする。
     """
-    sim, hw = D.sim_summary(), D.hw_summary()
+    sessions = sessions or {"*": "s4"}
+    sim = D.sim_summary()
+    hw_cache = {s: D.hw_summary(s) for s in set(sessions.values())}
     xs = np.arange(len(D.MODELS))
     w = 0.36
     out = {}
@@ -101,23 +118,39 @@ def panel_condition(ax, sim_task, hw_task, title, in_dist) -> dict:
         task = sim_task if dom == "sim" else hw_task
         if task is None:
             continue
-        mu, sd, vals = [], [], []
+        mu, sd, suspect = [], [], []
         for m in D.MODELS:
-            v = (sim[(sim.model == m) & (sim.task == task)] if dom == "sim"
-                 else hw[(hw.model == m) & (hw.midi == task)])
+            sess = sessions.get(m, sessions.get("*", "s4"))
+            if dom == "sim":
+                v = sim[(sim.model == m) & (sim.task == task)]
+            else:
+                h = hw_cache[sess]
+                v = h[(h.model == m) & (h.midi == task)]
             v = v.groupby("seed")["success_rate"].mean().values
-            mu.append(v.mean()); sd.append(v.std(ddof=1)); vals.append(v)
+            suspect.append(dom == "real" and sess in SUSPECT_SESSIONS)
+            if len(v) == 0:          # その条件では未取得のモデル
+                mu.append(np.nan); sd.append(np.nan); continue
+            mu.append(v.mean()); sd.append(v.std(ddof=1))
         pos = xs + (k - 0.5) * w
         ax.bar(pos, mu, w * 0.9, color=DOMAIN_COLORS[dom], zorder=3,
                edgecolor="white", linewidth=0.7, label=DOMAIN_LABEL[dom])
+        # 劣化リグ由来の棒だけ斜線を重ねる
+        sus = [i for i, f in enumerate(suspect) if f and not np.isnan(mu[i])]
+        if sus:
+            ax.bar(pos[sus], [mu[i] for i in sus], w * 0.9, color="none",
+                   hatch="////", edgecolor="white", linewidth=0.7, zorder=4)
         ax.errorbar(pos, mu, yerr=sd, color=INK_MUTED, capsize=1.2, elinewidth=0.6,
                     ls="none", zorder=5)
+        # 棒が無いのを「0」と読ませない。欠測は n/a と明示する。
+        for p_, v_ in zip(pos, mu):
+            if np.isnan(v_):
+                ax.text(p_, 0.02, "n/a", rotation=90, ha="center", va="bottom",
+                        fontsize=plt.rcParams["font.size"] - 3.0, color=INK_MUTED)
         out[dom] = {m: (round(a, 3), round(b, 3)) for m, a, b in zip(D.MODELS, mu, sd)}
-    if sim_task is None or hw_task is None:
-        miss = "simulation" if sim_task is None else "hardware"
-        ax.text(0.5, 0.965, f"not run in {miss}", transform=ax.transAxes,
-                fontsize=plt.rcParams["font.size"] - 2.4, color=INK_MUTED,
-                ha="center", va="top")
+    if sim_task is None:
+        for p_ in xs - 0.5 * w:
+            ax.text(p_, 0.02, "n/a", rotation=90, ha="center", va="bottom",
+                    fontsize=plt.rcParams["font.size"] - 3.0, color=INK_MUTED)
     ax.set_xticks(xs, D.MODELS)
     ax.set_ylim(0, 1.12)
     ax.set_yticks([0, 0.5, 1.0])
@@ -137,17 +170,17 @@ def main() -> int:
     args = ap.parse_args()
     apply_style(args.fontsize)
 
-    fig, axes = plt.subplots(1, 4, figsize=(DBL_W, args.height),
-                             gridspec_kw=dict(wspace=0.30))
+    fig, axes = plt.subplots(1, len(CONDITIONS), figsize=(DBL_W, args.height),
+                             gridspec_kw=dict(wspace=0.22))
     res = {}
-    for tag, ax, (st, ht, title, indist) in zip("abcd", axes, CONDITIONS):
-        res[tag] = panel_condition(ax, st, ht, title, indist)
+    for tag, ax, (st, ht, title, indist, sess) in zip("abcd", axes, CONDITIONS):
+        res[tag] = panel_condition(ax, st, ht, title, indist, sess)
         panel_tag(ax, f"({tag})", x=-0.30, y=1.30)
     axes[0].set_ylabel("Success rate  ($\\pm$30 ms)")
     for ax in axes[1:]:
         ax.set_yticklabels([])
     fig.supxlabel("Model", fontsize=plt.rcParams["font.size"], y=-0.04)
-    axes[2].legend(loc="upper right", fontsize=plt.rcParams["font.size"] - 2.0,
+    axes[-1].legend(loc="upper right", fontsize=plt.rcParams["font.size"] - 2.0,
                    handlelength=1.2, ncol=1, labelspacing=0.25)
 
     save(fig, args.outdir, "fig4_simresults", args.format)

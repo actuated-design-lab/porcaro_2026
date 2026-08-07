@@ -31,6 +31,7 @@ DOUBLE_SIM = "double_160bpm"
 DOUBLE_HW = "test_double_bpm160.mid"
 SINGLE_HW = "test_single8_bpm120.mid"
 GMD04_SIM = "gmd_04_extreme_bpm170"
+GMD04_HW = "gmd_04_extreme_bpm170.mid"
 
 # 本文の比較に使う条件（single8 は12打点しかなく検出力が無いので外す）
 MAIN_SIM = [DOUBLE_SIM, GMD03_SIM]
@@ -57,8 +58,17 @@ def _hw_keys(d: pd.DataFrame) -> pd.DataFrame:
     return d
 
 
-def hw_summary() -> pd.DataFrame:
-    return _hw_keys(pd.read_csv(DATA / "hardware" / "hw_summary_s4_1N.csv"))
+def hw_summary(session: str = "s4") -> pd.DataFrame:
+    """実機の集計。既定は第4セッション（本文の全数値の出所）。
+
+    session="s2" は先読み軸のセッション（A/B/C x 5seed x 3trial）。gmd_04 は
+    第4セッションで撮っていないので、この条件だけ s2 を使う。リグは健全
+    （gmd_03 の B アンカーが 0.534 で、他の健全セッションと同水準）。
+    session="s1" は腱脱落で除外したセッション。**本文には使わないこと。**
+    """
+    f = {"s4": "hw_summary_s4_1N.csv", "s2": "summary_s2_1N.csv",
+         "s1": "summary_s1_1N.csv", "s3": "summary_s3_1N.csv"}[session]
+    return _hw_keys(pd.read_csv(DATA / "hardware" / f))
 
 
 def hw_strikes() -> pd.DataFrame:
@@ -79,12 +89,20 @@ def seed_level(d: pd.DataFrame, task_col: str, tasks) -> pd.DataFrame:
     """条件を絞り、曲と trial をまたいでシード内で平均する。
 
     返り値は [model, seed, success_rate] の縦持ち。**必ずこの単位で検定する。**
-    ランを単位にすると trial を多く取ったモデルが実質的に重み付けされてしまう。
+
+    ★2026-08-06: 二段平均に変更した。まず (model, seed, 条件) で平均し、
+      そのあと条件をまたいで平均する。実機では記憶の三つ組 (B, D, E) だけ
+      GMD の trial を3本取っているので、行をそのまま平均すると B/D/E は
+      GMD:double = 3:1、A/C は 1:1 となり、モデル間で条件の重みが揃わない。
+      sim 側は元々1:1なので、これで sim と実機の重み付けも一致する。
+      影響は小さい（D 0.292→0.264、E 0.511→0.505、他は0.001以内）が、
+      「重み付けが違うから差が出たのでは」という指摘を構造的に潰せる。
     """
     if isinstance(tasks, str):
         tasks = [tasks]
     sub = d[d[task_col].isin(tasks)]
-    return sub.groupby(["model", "seed"], as_index=False)["success_rate"].mean()
+    per_cond = sub.groupby(["model", "seed", task_col], as_index=False)["success_rate"].mean()
+    return per_cond.groupby(["model", "seed"], as_index=False)["success_rate"].mean()
 
 
 def by_model(seed_df: pd.DataFrame) -> pd.DataFrame:
