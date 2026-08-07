@@ -34,7 +34,8 @@ import matplotlib.pyplot as plt  # noqa: E402
 import ral_data as D  # noqa: E402
 from ral_figstyle import (  # noqa: E402
     BAND, COL_W, DOMAIN_COLORS, DOMAIN_LABEL, INK, INK_MUTED, MASK_COLORS,
-    MODEL_COLORS, MODEL_SHORT, apply_style, base_argparser, panel_tag, save, tidy,
+    MODEL_COLORS, MODEL_SHORT, TIMING_COLORS, TIMING_LS, apply_style,
+    base_argparser, panel_tag, save, tidy,
 )
 
 WORKING = ["B", "C", "E"]   # 転移に成功した3方策
@@ -92,8 +93,9 @@ def panel_timing(ax) -> dict:
     out, lines = {}, []
     for m in WORKING:
         e = hs[hs.model == m]["timing_err_ms"].dropna().values
+        # ★色は (a)(c) と意味が衝突しない中立色。線種でも冗長に符号化する。
         ax.hist(e[np.abs(e) <= 150], bins=bins, density=True, histtype="step",
-                lw=1.3, color=MODEL_COLORS[m], zorder=3, label=m)
+                lw=1.2, color=TIMING_COLORS[m], ls=TIMING_LS[m], zorder=3, label=m)
         out[m] = dict(n=int(len(e)), mean=float(e.mean()), sd=float(e.std(ddof=1)),
                       within30=float(np.mean(np.abs(e) <= 30)))
         lines.append(f"{m}  {e.mean():+.0f} $\\pm$ {e.std(ddof=1):.0f} ms")

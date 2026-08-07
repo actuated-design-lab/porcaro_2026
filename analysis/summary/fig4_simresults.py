@@ -179,7 +179,7 @@ def main() -> int:
     axes[0].set_ylabel("Success rate  ($\\pm$30 ms)")
     for ax in axes[1:]:
         ax.set_yticklabels([])
-    fig.supxlabel("Model", fontsize=plt.rcParams["font.size"], y=-0.04)
+    axes[1].set_xlabel("Model", labelpad=6)
     axes[-1].legend(loc="upper right", fontsize=plt.rcParams["font.size"] - 2.0,
                    handlelength=1.2, ncol=1, labelspacing=0.25)
 

@@ -76,6 +76,15 @@ MASK_COLORS = {
     "shuffle": OKABE_ITO["green"],
 }
 
+# Fig.5(b) のタイミング誤差ヒストグラム専用。
+# ★同じ図の中で青=sim / 橙=実機（パネルa）、緑=success / 橙=late / 灰=no strike
+#   （パネルc）という意味付けを使っているので、B/C/E をこの3系統のどれかで塗ると
+#   「(b)の緑=E」と「(c)の緑=success」が読者の中で混線する。
+#   そこで (b) だけは意味を持たない中立色（黒・紫・濃灰）を使い、さらに線種でも
+#   分けて、白黒印刷でも区別できるようにする。
+TIMING_COLORS = {"B": OKABE_ITO["black"], "C": OKABE_ITO["purple"], "E": "#6b6b6b"}
+TIMING_LS = {"B": "-", "C": "--", "E": "-."}
+
 INK = "#1a1a1a"
 INK_MUTED = "#6b6b6b"
 GRID = "#dddddd"

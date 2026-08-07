@@ -63,9 +63,14 @@ def main() -> int:
     chk("4) 95%CI 上", d + 2.306 * se, 0.194, 0.002)
 
     # --- §IV-C 検出力 ---
-    pooled = np.sqrt((vb.var(ddof=1) + ve.var(ddof=1)) / 2)
-    chk("IV-C pooled SD", pooled, 0.092, 0.002)
-    chk("IV-C MDE", (2.306 + 1.533) * pooled * np.sqrt(2 / 5), 0.223, 0.005)
+    # ★2026-08-07: 本文が「転移した3方策」と書いているので B/C/E でプールする
+    #   （旧実装は B/E だけで 0.092 だった）。検出力側の係数も t(0.80, df=8)=0.889 に
+    #   修正（旧 1.533 は t(0.90, df=4) で分位も自由度も誤り）。0.092x3.839=0.223 と
+    #   0.121x3.195=0.245 は近いので、本文の結論は変わらない。
+    vc = H[H.model == "C"]["success_rate"].values
+    pooled = np.sqrt(np.mean([vb.var(ddof=1), vc.var(ddof=1), ve.var(ddof=1)]))
+    chk("IV-C pooled SD (B,C,E)", pooled, 0.121, 0.002)
+    chk("IV-C MDE", (2.306 + 0.889) * pooled * np.sqrt(2 / 5), 0.245, 0.005)
 
     # --- §IV-C2 打てない率 ---
     st = D.hw_strikes(); st = st[st.midi.isin(D.MAIN_HW)]
@@ -151,10 +156,12 @@ def main() -> int:
     dd = D.hw_strikes(); dd = dd[(dd.midi == D.DOUBLE_HW) & dd.model.isin(["B", "C", "E"])]
     dd = dd[dd.peak_force >= 1.0].copy()
     dd["pos"] = np.where(dd.strike_idx % 2 == 0, "1st", "2nd")
-    g = dd.groupby(["model", "seed", "pos"]).peak_force.mean().unstack(-1).dropna()
-    chk("3) 1打目 打撃力[N]", g["1st"].mean(), 27.1, 0.05)
-    chk("3) 2打目 打撃力[N]", g["2nd"].mean(), 11.3, 0.05)
-    rng("3) p(1打目,2打目)", stats.ttest_rel(g["2nd"], g["1st"]).pvalue, 0.0, 0.001)
+    # ★本文が宣言する解析単位（シード, n=5）で対にする。model-seed の15対だと
+    #   27.1/11.3, p=0.00015 になるが、それは宣言した規約と違う単位になる。
+    g = dd.groupby(["seed", "pos"]).peak_force.mean().unstack(-1).dropna()
+    chk("3) 1打目 打撃力[N]", g["1st"].mean(), 26.9, 0.05)
+    chk("3) 2打目 打撃力[N]", g["2nd"].mean(), 11.0, 0.05)
+    chk("3) p(1打目,2打目)", stats.ttest_rel(g["2nd"], g["1st"]).pvalue, 0.008, 0.001)
 
     # --- §IV-D tau スイープ ---
     tp = D.tau_summary().groupby(["tau", "lh", "seed"], as_index=False).success_rate.mean()
