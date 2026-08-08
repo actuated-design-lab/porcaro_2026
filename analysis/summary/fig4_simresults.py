@@ -56,13 +56,16 @@ SMOOTH_WINDOW = 15   # 学習曲線の移動平均。生のままだと5本重�
 #     つまり D/E の値は他の3本と同じ土俵に乗っていない。図では区別せず（棒は実線のまま）、
 #     キャプションと §IV-B の本文で断る方針。
 #     SUSPECT_SESSIONS にセッション名を入れるとその棒だけ斜線になる（既定は使わない）。
-SUSPECT_SESSIONS: set[str] = set()
+SUSPECT_SESSIONS: set[str] = set()   # 劣化セッションは図に出さない方針にしたので未使用
 
 CONDITIONS = [
     ("double_160bpm", "test_double_bpm160.mid", "double, 160 BPM", True, {"*": "s4"}),
     ("gmd_03_high_bpm138", "gmd_03_high_bpm138.mid", "GMD, 138 BPM", False, {"*": "s4"}),
+    # ★D/E は s1(腱脱落セッション)にしか無い。本文が「全比較から除外」と宣言している
+    #   データを図にだけ出すのは矛盾なので参照しない。s2 は A/B/C のみなので D/E は
+    #   自動的に欠測扱いになり、panel_condition が n/a と描く。
     ("gmd_04_extreme_bpm170", "gmd_04_extreme_bpm170.mid", "GMD, 170 BPM", False,
-     {"A": "s2", "B": "s2", "C": "s2", "D": "s1", "E": "s1"}),
+     {"*": "s2"}),
 ]
 
 

@@ -95,10 +95,14 @@ def panel_tau(ax, fig) -> dict:
             ax.text(j, i, f"{grid[i, j]:.2f}", ha="center", va="center",
                     color=shade, fontsize=plt.rcParams["font.size"] - 1.8)
     ax.set_xticks(range(len(lhs)), [f"{v:g}" for v in lhs])
-    ax.set_yticks(range(len(taus)), [f"{v:g}" for v in taus])
+    # ★tau_summary の "tau" は同定時定数テーブルへの倍率（train.py --pam_tau_scale）。
+    #   軸は物理的に読める実効時定数[s]で出す。0.0883 s はテーブルのオフ対角平均。
+    TAU_TABLE_MEAN_S = 0.0883
+    ax.set_yticks(range(len(taus)), [f"{v*TAU_TABLE_MEAN_S:.3f}" for v in taus])
     ax.set_xlabel("Lookahead horizon [s]")
     ax.set_ylabel(r"Training $\tau$ [s]")
     cb = fig.colorbar(im, ax=ax, fraction=0.04, pad=0.02)
+    cb.set_label("Success rate", fontsize=plt.rcParams["font.size"] - 1)
     cb.ax.tick_params(labelsize=plt.rcParams["font.size"] - 2.2)
     cb.outline.set_visible(False)
     for sp in ax.spines.values():
