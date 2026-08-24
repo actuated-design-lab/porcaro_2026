@@ -75,7 +75,7 @@ def main() -> int:
     ap.add_argument("--dry_run", action="store_true")
     args = ap.parse_args()
 
-    root = Path(args.eval_logs)
+    root = Path(args.eval_logs).resolve()
     if not root.exists():
         print(f"ERROR: {root} が無い。--eval_logs で指定してください。")
         return 1

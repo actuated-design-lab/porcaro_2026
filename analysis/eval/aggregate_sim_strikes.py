@@ -86,7 +86,7 @@ def main() -> int:
     ap.add_argument("--dry_run", action="store_true", help="集計せず、見つかったものを表示")
     args = ap.parse_args()
 
-    eval_root = Path(args.eval_logs)
+    eval_root = Path(args.eval_logs).resolve()
     if not eval_root.exists():
         print(f"ERROR: {eval_root} が無い")
         return 1
