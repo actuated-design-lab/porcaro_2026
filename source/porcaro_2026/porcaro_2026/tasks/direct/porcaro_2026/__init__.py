@@ -3,4 +3,4 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from . import user0, user1
+from . import user0, user1, user2
