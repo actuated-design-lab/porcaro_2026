@@ -508,7 +508,9 @@ class Porcaro2026Env(DirectRLEnv):
         if hasattr(self.action_controller, "compute_pressure"):
             with torch.no_grad():
                 p_cmd_3d = self.action_controller.compute_pressure(self.actions)
-
+             # ★ 確認用：最初の環境の圧力値を出力
+            
+        
         # --- 以下、既存の Model A/B ロジック (Model Cじゃない場合のみ実行) ---
 
         
