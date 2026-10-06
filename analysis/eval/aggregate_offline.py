@@ -1,10 +1,10 @@
 """Layer2a aggregation for the offline (A)-(D) eval studies.
 
 Reads simulation_log.csv trees produced by:
-  (A) analysis/eval/run_eval_tau_sweep.py       -> eval_logs_tau_sweep/
-  (B) run_eval_matrix.py --task_override ...    -> eval_logs_nondr/
-  (C) run_eval_matrix.py --trials_per_condition -> eval_logs_trials5/
-  (D) run_eval_matrix.py --mask_mode ...        -> eval_logs_mask_{zero,noise,shuffle}/
+  (A) analysis/eval/run_eval_tau_sweep.py       -> data/ral2026/eval/tau_sweep/
+  (B) run_eval_matrix.py --task_override ...    -> data/ral2026/eval/nondr/
+  (C) run_eval_matrix.py --trials_per_condition -> data/ral2026/eval/trials5/
+  (D) run_eval_matrix.py --mask_mode ...        -> data/ral2026/eval/mask_{zero,noise,shuffle}/
 
 and the original A-E matrix's analysis/outputs/eval_summary.csv /
 eval_strikes_raw.csv (already produced by the Monday eval pass), and writes:
@@ -84,7 +84,7 @@ def extract_strikes_tree(eval_logs_root: Path) -> pd.DataFrame:
 # (A) tau-sweep: optimal lookahead per tau
 # ---------------------------------------------------------------------------
 
-def tau_optimal_lookahead(eval_logs_root: Path = REPO_ROOT / "eval_logs_tau_sweep") -> pd.DataFrame | None:
+def tau_optimal_lookahead(eval_logs_root: Path = REPO_ROOT / "data" / "ral2026" / "eval" / "tau_sweep") -> pd.DataFrame | None:
     if not eval_logs_root.is_dir():
         print(f"[aggregate_offline] (A) {eval_logs_root} does not exist yet - skipping tau-eval aggregation.")
         return None
@@ -182,7 +182,7 @@ def memory_group_comparison(
 # (C) trials>1 eval-noise variance
 # ---------------------------------------------------------------------------
 
-def trials_eval_noise_summary(eval_logs_root: Path = REPO_ROOT / "eval_logs_trials5") -> pd.DataFrame | None:
+def trials_eval_noise_summary(eval_logs_root: Path = REPO_ROOT / "data" / "ral2026" / "eval" / "trials5") -> pd.DataFrame | None:
     if not eval_logs_root.is_dir():
         print(f"[aggregate_offline] (C) {eval_logs_root} does not exist yet - skipping eval-noise aggregation.")
         return None
@@ -227,7 +227,7 @@ def mask_comparison(
 ) -> pd.DataFrame | None:
     if mask_roots is None:
         mask_roots = {
-            mode: REPO_ROOT / f"eval_logs_mask_{mode}" for mode in ("zero", "noise", "shuffle")
+            mode: REPO_ROOT / "data" / "ral2026" / "eval" / f"mask_{mode}" for mode in ("zero", "noise", "shuffle")
         }
 
     rows = []

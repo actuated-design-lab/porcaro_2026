@@ -11,18 +11,46 @@ This project simulates and trains **Porcaro**, a drumming robot driven by Pneuma
 
 ```text
 porcaro_2026/
+ ├── analysis/                             # Offline evaluation, aggregation and figure scripts (code only)
+ │   ├── eval/                             # Eval drivers + aggregation -> writes into data/<venue>/eval/
+ │   ├── export/                           # ONNX export for the real robot -> data/<venue>/models/
+ │   ├── harness/                          # Shared helpers (run discovery, strike extraction, stats)
+ │   └── summary/                          # Paper figures (fig*.py) and report; reads data/<venue>/paper/
+ ├── data/                                 # All experiment data (see "Data Layout" below)
+ │   ├── common/                           # Inputs shared across venues
+ │   │   └── midi/                         # Evaluation MIDI files
+ │   ├── ral2026/                          # IEEE RA-L submission (2026-09-02)
+ │   │   ├── eval/                         # Raw sim eval logs (simulation_log.csv trees + manifests)
+ │   │   │   ├── main/                     # Model A-E main eval (75 jobs)
+ │   │   │   ├── nondr/                    # A-E re-evaluated without domain randomization
+ │   │   │   ├── trials5/                  # Repeated trials for eval-noise estimation
+ │   │   │   ├── tau_sweep/                # PAM time-constant (tau) x lookahead sweep
+ │   │   │   └── mask_{zero,noise,shuffle}/ # Far-future observation masking ablation
+ │   │   ├── paper/                        # Frozen CSVs the paper figures read (sim/tau/hardware/ablation/validation)
+ │   │   └── models/                       # Exported ONNX policies + manifest_fragment.yaml for jetson_project
+ │   ├── jfps2026/                         # JFPS 2026 Autumn Conference
+ │   │   └── replay/                       # Open-loop replay results (scripts/replay_open_loop.py)
+ │   └── migrate_old_layout.py             # One-off: move untracked data from the pre-2026-10 layout
+ ├── docs/                                 # Notes (e.g. magic-number audit for the RA-L paper)
+ ├── logs/                                 # (git-ignored) Isaac Lab training logs, written by scripts/rsl_rl/train.py
  ├── scripts/                              # Execution scripts for training and inference
  │   ├── list_envs.py                      # List all registered environments
  │   ├── random_agent.py                   # Random action agent
  │   ├── zero_agent.py                     # Zero action agent
+ │   ├── replay_open_loop.py               # Open-loop pressure-command replay in sim
  │   └── rsl_rl/
  │       ├── train.py                      # Main training script
  │       ├── play.py                       # Inference and visualization script
  │       ├── play_sim_midi.py              # MIDI-driven simulation playback
  │       ├── play_sim_rhythm.py            # Rhythm-driven simulation playback
+ │       ├── run_experiment_matrix.py      # Training matrix driver
+ │       ├── export_onnx.py                # Export a checkpoint to ONNX
+ │       ├── obs_mask.py                   # Observation masking for ablations
  │       └── cli_args.py                   # Shared CLI argument definitions
  ├── source/
  │   └── porcaro_2026/                     # Core extension package
+ │       ├── pyproject.toml
+ │       ├── setup.py
  │       ├── config/
  │       │   └── extension.toml            # Extension configuration
  │       ├── docs/
@@ -61,10 +89,34 @@ porcaro_2026/
  │                   ├── __init__.py      # gym.register for user1 tasks
  │                   └── ...
  ├── environment.yml
- ├── pyproject.toml
- ├── setup.py
  └── README.md
 ```
+
+### Data Layout
+
+All experiment data lives under `data/`, grouped first by **venue / purpose** and then by **kind of experiment**.
+Code never lives under `data/` (except the one-off migration script), and data never lives at the repository root.
+
+Rules:
+
+1. **Put data under the venue/purpose it was first produced for** (`data/ral2026/`, `data/jfps2026/`, ...).
+   When later work (thesis, talks, a follow-up paper) reuses it, **refer to it by path — do not copy it**.
+   This keeps one authoritative copy per dataset.
+2. **Inputs shared by several venues** (e.g. evaluation MIDI files) go in `data/common/`.
+3. Inside a venue folder, use these sub-folders as needed:
+   - `eval/<experiment>/` — raw outputs of evaluation runs (`simulation_log.csv` trees and their manifests)
+   - `paper/` — the frozen, aggregated CSVs that the paper's figures actually read. Treat as read-only after submission.
+   - `models/` — exported policies handed to the real robot (`jetson_project`)
+   - other purpose-specific folders (e.g. `replay/`) when nothing above fits
+4. **New experiments must pass their output path explicitly**, e.g.
+   `--eval_logs_root data/<venue>/eval/<experiment>`. The defaults in `analysis/` point to `data/ral2026/` so that
+   the RA-L pipeline (`analysis/run_all_offline.sh`) reproduces as-is; do not let new runs fall into it.
+   (`scripts/rsl_rl/play_sim_*.py` run without `--eval_logs_root` still write to `./eval_logs/` at the root.)
+5. Most data files (`*.csv`, `*.npy`, `*.onnx`, ...) are git-ignored and exist only on the lab machines.
+
+Migrating a working copy from the old layout (`eval_logs*/`, `eval_assets/`, `paper_data/`, `models/`, `out/` at the root):
+after pulling, run `python data/migrate_old_layout.py` to preview and `python data/migrate_old_layout.py --apply`
+to move the git-ignored data into the new locations.
 
 ---
 

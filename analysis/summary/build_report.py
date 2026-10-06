@@ -68,7 +68,7 @@ LEDGER = [
         ),
         cond="double_160(基本) / gmd_03_high_bpm138 / gmd_04_extreme_bpm170、A-E×5seed",
         seeds="5 seed/model",
-        data="eval_logs/ → analysis/outputs/eval_summary.csv, eval_seed_level.csv, "
+        data="data/ral2026/eval/main/ → analysis/outputs/eval_summary.csv, eval_seed_level.csv, "
              "memory_group_comparison.csv",
         conclusion="GMD2条件でA≪B≈C、D<B≈E。double_160では全群のCIが重なり横並び。"
                    "Dは5 seed中2 seed(3,5)がGMD条件で0%に崩壊(下記図C参照)。",
@@ -93,7 +93,7 @@ LEDGER = [
         r3r4="同上(R4のhorizon選択根拠、R3の correlational 指摘の両方に関連)。",
         cond="τスイープ27runをdouble_160/gmd_03/gmd_04で評価(trial=1)",
         seeds="3 seed/cell",
-        data="eval_logs_tau_sweep/ → tau_lookahead_success_rate_by_condition.csv, "
+        data="data/ral2026/eval/tau_sweep/ → tau_lookahead_success_rate_by_condition.csv, "
              "tau_optimal_lookahead_gmd.csv",
         conclusion="GMD限定で最適lookaheadはτ=0.5→0.5s, τ=1.0→0.5s, τ=2.0→2.0s。"
                    "trend(単調ではあるが2点は同値、n=3で分散大、τ=2.0は探索グリッドの右端が"
@@ -109,7 +109,7 @@ LEDGER = [
         ),
         cond="A-E×5seedを非DR task(Template-Porcaro-2026-ModelB-user0)で再eval",
         seeds="5 seed/model",
-        data="eval_logs_nondr/ → dr_vs_nondr_comparison.csv",
+        data="data/ral2026/eval/nondr/ → dr_vs_nondr_comparison.csv",
         conclusion="モデル×条件でΔ(非DR−DR)の符号・大きさに系統性なし(Bが他モデルより"
                    "系統的に悪化するパターンは見られない) → 「BのDR過剰適応」仮説棄却。",
     ),
@@ -122,7 +122,7 @@ LEDGER = [
         ),
         cond="B/C/D/E × gmd_03/gmd_04、各seedでR=5 trial",
         seeds="5 seed/model",
-        data="eval_logs_trials5/ → trials5_eval_noise.csv",
+        data="data/ral2026/eval/trials5/ → trials5_eval_noise.csv",
         conclusion="B/C/Eではseed間ばらつき>評価(trial間)ばらつき。Dはseed間ばらつきが"
                    "突出して大きいが、これはDのbimodal崩壊(2 seedが0%)によるものであり、"
                    "評価ノイズ自体は他モデルと同程度(下記図E参照)。",
@@ -138,7 +138,7 @@ LEDGER = [
         ),
         cond="Model C(lh=1.0s)、遠未来0.5-1.0s部分をzero/noise/shuffleで破壊 vs baseline",
         seeds="5 seed",
-        data="eval_logs_mask_{zero,noise,shuffle}/ → mask_comparison.csv",
+        data="data/ral2026/eval/mask_{zero,noise,shuffle}/ → mask_comparison.csv",
         conclusion="zero/shuffleはbaselineとほぼ同水準(3条件ともCI重複)。noiseのみ明確に低下。"
                    "→ 遠未来情報が無くても(zero/shuffle)性能は落ちない一方、誤情報(noise)には"
                    "敏感 — 「不要な情報への過学習」という単純な説明とは整合しにくい"
