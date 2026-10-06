@@ -21,6 +21,15 @@ class TorqueControllerCfg:
     N: float = 630.0 # 簡易式 Fpam_quasi_static 用 (CSVがあれば不要)
     pam_viscosity: float = 0.0
     force_map_csv: str = FORCE_MAP_CSV
-    force_scale: float = 0.2
+    # 力マップの倍率。スカラー（3筋共通）か (DF, F, G) の組（筋ごと）。RA-L は 0.2
+    force_scale: float | tuple[float, float, float] = 0.2
     h0_map_csv: str = H0_MAP_CSV
     use_pressure_dependent_tau: bool = True
+
+    # --- PAM のヒステリシス力と、たるみの境目（以前は TorqueActionController の既定値に固定。値は同じ） ---
+    pam_hys_const: float = 0.5          # c0 [N]
+    pam_hys_coef_p: float = 15.0        # cP [N/MPa]
+    pam_contract_gain: float = 1.5      # 収縮側の非対称係数
+    pam_extend_gain: float = 1.0        # 伸長側の非対称係数
+    pam_p_dot_scale: float = 100.0      # 向き d = tanh(clip(scale·dP/dt)/0.1) の scale
+    transition_width: float = 0.0       # たるみ→張りの遷移幅（0 = 階段）

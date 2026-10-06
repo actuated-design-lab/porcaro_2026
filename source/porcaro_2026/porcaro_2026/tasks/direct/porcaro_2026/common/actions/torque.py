@@ -28,7 +28,7 @@ class TorqueActionController(ActionController):
                  pam_hys_const: float = 0.5,
                  pam_hys_coef_p: float = 15,
                  force_map_csv: str | None = None,
-                 force_scale: float = 1.0,
+                 force_scale: float | tuple[float, float, float] = 1.0,
                  h0_map_csv: str | None = None,
                  use_pressure_dependent_tau: bool = True,
                  geometric_cfg: PamGeometricCfg | None = None,
@@ -60,7 +60,14 @@ class TorqueActionController(ActionController):
         self.pam_viscosity = float(pam_viscosity)
         self.pam_hys_const = float(pam_hys_const)
         self.pam_hys_coef_p = float(pam_hys_coef_p)
-        self.force_scale = float(force_scale)
+        # 力マップの倍率。スカラー（3筋共通、RA-L まで）か (DF, F, G) の組（筋ごと）
+        if isinstance(force_scale, (list, tuple)):
+            if len(force_scale) != 3:
+                raise ValueError(f"force_scale は スカラー か (DF, F, G) の3要素: {force_scale}")
+            self.force_scale_DF, self.force_scale_F, self.force_scale_G = (float(v) for v in force_scale)
+        else:
+            self.force_scale_DF = self.force_scale_F = self.force_scale_G = float(force_scale)
+        self.force_scale = self.force_scale_DF   # 互換用（以前の単一値）
         self.transition_width = float(transition_width)
 
         self.pam_p_dot_scale = float(pam_p_dot_scale)
@@ -240,9 +247,9 @@ class TorqueActionController(ActionController):
             eps_G  = calculate_absolute_contraction(q_grip_rad,  th_G,  self.r, self.L0_sim)
             
             if self.force_map is not None and self.h0_map is not None:
-                F_DF = apply_model_a_force(self.force_map, self.h0_map, P_DF, eps_DF) * self.force_scale
-                F_F  = apply_model_a_force(self.force_map, self.h0_map, P_F,  eps_F)  * self.force_scale
-                F_G  = apply_model_a_force(self.force_map, self.h0_map, P_G,  eps_G)  * self.force_scale
+                F_DF = apply_model_a_force(self.force_map, self.h0_map, P_DF, eps_DF) * self.force_scale_DF
+                F_F  = apply_model_a_force(self.force_map, self.h0_map, P_F,  eps_F)  * self.force_scale_F
+                F_G  = apply_model_a_force(self.force_map, self.h0_map, P_G,  eps_G)  * self.force_scale_G
             
             # H0 Cutoff (変更なし)
             if self.h0_map is not None:
@@ -265,9 +272,9 @@ class TorqueActionController(ActionController):
                     pressure=P_G, shrink_gain=self.pressure_shrink_gain, clamp=False, sign=SIGN_G)
 
             # 2. 静的力 (Map直引き)
-            F_DF_static = self.force_map(P_DF, h_DF) * self.force_scale
-            F_F_static  = self.force_map(P_F,  h_F)  * self.force_scale
-            F_G_static  = self.force_map(P_G,  h_G)  * self.force_scale
+            F_DF_static = self.force_map(P_DF, h_DF) * self.force_scale_DF
+            F_F_static  = self.force_map(P_F,  h_F)  * self.force_scale_F
+            F_G_static  = self.force_map(P_G,  h_G)  * self.force_scale_G
 
             # 3. 収縮速度 (deg2rad不要)
             def calculate_h_dot(dq_rad, r, sign, L0):

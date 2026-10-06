@@ -128,6 +128,13 @@ class Porcaro2026Env(DirectRLEnv):
             use_pressure_dependent_tau=ctrl_cfg.use_pressure_dependent_tau,
             geometric_cfg=self.cfg.pam_geometric_cfg,
             pam_tau_scale_range=pam_tau_scale_range,
+            pam_viscosity=getattr(ctrl_cfg, "pam_viscosity", 0.0),
+            pam_hys_const=getattr(ctrl_cfg, "pam_hys_const", 0.5),
+            pam_hys_coef_p=getattr(ctrl_cfg, "pam_hys_coef_p", 15.0),
+            pam_contract_gain=getattr(ctrl_cfg, "pam_contract_gain", 1.5),
+            pam_extend_gain=getattr(ctrl_cfg, "pam_extend_gain", 1.0),
+            pam_p_dot_scale=getattr(ctrl_cfg, "pam_p_dot_scale", 100.0),
+            transition_width=getattr(ctrl_cfg, "transition_width", 0.0),
         )
         self.action_controller.reset(self.num_envs, self.device)
 

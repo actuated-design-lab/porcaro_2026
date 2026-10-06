@@ -13,6 +13,13 @@ RA-L で使った user0 環境（Porcaro2026EnvCfg_ModelB, DR なし）をその
   orifice  : lag に、給気・排気のオリフィス流量の上限を足したもの（同上）
   measured : 実機で測った圧力をそのまま入れる（--real_log 必須）。
              「圧力→角度」だけを比べ、機構側（力マップ・摩擦・たるみ）の誤差を切り分ける
+             実測圧力は移動平均（--meas_lpf_ms, 既定 50 ms）と遊び（--meas_play_kpa, 既定 ±10 kPa）を
+             かけてから入れる。生のままだと圧力ノイズでヒステリシス力の向きが毎ステップ反転し、
+             sim 側のヒステリシスが実質消える
+
+機械側の上書き（--ctrl）:
+  cfg.controller の項目を JSON で上書きする（force_scale は (DF, F, G) の組も可）。
+  例: --ctrl '{"force_scale":[0.2,0.15,0.2],"theta_t_F_deg":60}'
 
 入力:
   --signal  test_signals/tm_*.csv（time, cmd_pressure_DF, cmd_pressure_F, cmd_pressure_G, 50 Hz）
@@ -46,6 +53,15 @@ p.add_argument("--real_log", default=None)
 p.add_argument("--params", default=None,
                help="lag/orifice のパラメータを JSON で上書き（例: '{\"tau\":0.09,\"L\":0.045}'）")
 p.add_argument("--no_drum", action="store_true", help="打面を横へ 2 m 退避（打面なしの実機試験と揃える）")
+p.add_argument("--ctrl", default=None,
+               help="機械側（張力・関節）の設定を JSON で上書き。cfg.controller の項目名で指定。"
+                    "例: '{\"force_scale\":[0.2,0.15,0.2],\"theta_t_F_deg\":60,\"pam_hys_const\":1.0}'")
+p.add_argument("--meas_lpf_ms", type=float, default=50.0,
+               help="measured モードで実測圧力にかける移動平均の幅 [ms]（中心合わせ・遅れなし）。0 で無効")
+p.add_argument("--meas_play_kpa", type=float, default=10.0,
+               help="移動平均のあとにかける遊び（バックラッシュ）の半幅 [kPa]。0 で無効。"
+                    "生のままだと圧力ノイズでヒステリシス力の向き d が毎ステップの56%%で反転する（2026/10/6 判明）。"
+                    "既定の 50 ms + ±10 kPa で反転 0.4%%/step（tm_B で確認）")
 p.add_argument("--out", required=True)
 AppLauncher.add_app_launcher_args(p)
 args = p.parse_args()
@@ -155,6 +171,27 @@ class MeasuredChannel:
 # =============================================================================
 # 実機ログの読み込み（measured モード）
 # =============================================================================
+def smooth_centered(x, width_ms, dt):
+    """中心合わせの移動平均（遅れなし）。端は端の値で延長"""
+    k = int(round(width_ms / 1000.0 / dt))
+    if k <= 1:
+        return x
+    k += (k + 1) % 2                                  # 奇数に
+    pad = k // 2
+    xp = np.r_[np.full(pad, x[0]), x, np.full(pad, x[-1])]
+    return np.convolve(xp, np.ones(k) / k, mode="valid")
+
+
+def play_operator(x, half_width):
+    """遊び（バックラッシュ）：入力が ±half_width の帯の中で揺れている間は出力を保つ"""
+    if half_width <= 0:
+        return x
+    y = np.empty_like(x); y[0] = x[0]
+    for i in range(1, len(x)):
+        y[i] = min(max(y[i - 1], x[i] - half_width), x[i] + half_width)
+    return y
+
+
 def load_real_aligned(path, cmd_50hz, dt):
     """実機ログを、エコー（flag）で指令の時間軸に合わせ、dt 刻みの DF/F/G 圧力列にして返す"""
     d = pd.read_csv(path)
@@ -195,6 +232,13 @@ def main():
     cfg.pam_tau_scale_range = (1.0, 1.0)
     cfg.logging.enabled = False
     cfg.episode_length_s = n_steps * 0.02 + 10.0   # 途中でエピソードが切れないように
+    ctrl_over = json.loads(args.ctrl) if args.ctrl else {}
+    for k, v in ctrl_over.items():
+        if not hasattr(cfg.controller, k):
+            raise SystemExit(f"--ctrl: cfg.controller に '{k}' はありません")
+        setattr(cfg.controller, k, tuple(v) if isinstance(v, list) else v)
+    if ctrl_over:
+        print(f"[replay] 機械側の上書き: {ctrl_over}")
     if args.no_drum:
         x, y, z = cfg.drum_cfg.init_state.pos
         cfg.drum_cfg.init_state.pos = (x + 2.0, y, z)   # 下へ動かすと床に埋まるので横へ
@@ -217,6 +261,8 @@ def main():
         if not args.real_log:
             raise SystemExit("--pmodel measured には --real_log が必要です")
         Pm = load_real_aligned(args.real_log, cmd, dt_phys)
+        Pm = np.stack([play_operator(smooth_centered(Pm[:, k], args.meas_lpf_ms, dt_phys), args.meas_play_kpa / 1000.0)
+                       for k in range(3)], 1)
         ctrl.ch_DF, ctrl.ch_F, ctrl.ch_G = (MeasuredChannel(Pm[:, k]) for k in range(3))
     ctrl.reset(env.num_envs, env.device)
     print(f"[replay] pmodel={args.pmodel} params={prm} steps={n_steps} ({n_steps * 0.02:.1f} s) no_drum={args.no_drum}")
@@ -252,7 +298,9 @@ def main():
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     out.to_csv(args.out, index=False)
     meta = dict(signal=os.path.abspath(args.signal), pmodel=args.pmodel, params=prm, no_drum=args.no_drum,
-                real_log=args.real_log, dt=dt_phys, env_cfg="Porcaro2026EnvCfg_ModelB (DRなし)")
+                real_log=args.real_log, dt=dt_phys, env_cfg="Porcaro2026EnvCfg_ModelB (DRなし)",
+                ctrl=ctrl_over,
+                meas_filter=(dict(lpf_ms=args.meas_lpf_ms, play_kpa=args.meas_play_kpa) if args.pmodel == "measured" else None))
     with open(os.path.splitext(args.out)[0] + ".json", "w", encoding="utf-8") as fh:
         json.dump(meta, fh, ensure_ascii=False, indent=2)
     print(f"[replay] 保存: {args.out}  ({len(out)} 行)")
