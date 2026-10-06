@@ -35,7 +35,7 @@ Design:
   play_sim_rhythm.py. HEAVY = {(single_8, 160), (double, 160)} get
   --heavy_trials (default R=5) trials; every other BASIC condition and every
   GMD condition gets exactly 1 trial.
-- GMD = 4 fixed MIDI files under eval_assets/midi/, run via play_sim_midi.py.
+- GMD = 4 fixed MIDI files under data/common/midi/, run via play_sim_midi.py.
 - trial_seed = 1000 + trial (fixed per trial index, so re-running trial t for
   any (model, seed, condition) is reproducible).
 """
@@ -92,13 +92,13 @@ BASIC: list[tuple[str, int]] = [(p, b) for p in BASIC_PATTERNS for b in BASIC_BP
 HEAVY: set[tuple[str, int]] = {("single_8", 160), ("double", 160)}
 
 GMD: list[str] = [
-    "eval_assets/midi/gmd_01_low_bpm80.mid",
-    "eval_assets/midi/gmd_02_mid_bpm105.mid",
-    "eval_assets/midi/gmd_03_high_bpm138.mid",
-    "eval_assets/midi/gmd_04_extreme_bpm170.mid",
+    "data/common/midi/gmd_01_low_bpm80.mid",
+    "data/common/midi/gmd_02_mid_bpm105.mid",
+    "data/common/midi/gmd_03_high_bpm138.mid",
+    "data/common/midi/gmd_04_extreme_bpm170.mid",
 ]
 
-# Monday priority queue (docs/monday_run.md section 2): condition-outer /
+# Monday priority queue: condition-outer /
 # (model, seed)-inner, trial=0 only, so a queue cut off at any point still
 # contains the highest-priority condition across every available model/seed
 # before moving to the next condition. At 5 fully-trained models x 5 seeds
@@ -117,7 +117,7 @@ def trial_count_for(pattern: str, bpm: int, heavy_r: int) -> int:
 
 def build_rhythm_command(
     python_exe: str, checkpoint: Path, agent: str, model: str, pattern: str, bpm: int, trial: int,
-    task_id: str = TASK_ID, eval_logs_root: str = "eval_logs",
+    task_id: str = TASK_ID, eval_logs_root: str = "data/ral2026/eval/main",
     mask_mode: str | None = None, mask_lo_s: float = 0.5, mask_hi_s: float = 1.0,
 ) -> list[str]:
     trial_seed = TRIAL_SEED_BASE + trial
@@ -144,7 +144,7 @@ def build_rhythm_command(
 
 def build_midi_command(
     python_exe: str, checkpoint: Path, agent: str, model: str, midi_path: str, trial: int,
-    task_id: str = TASK_ID, eval_logs_root: str = "eval_logs",
+    task_id: str = TASK_ID, eval_logs_root: str = "data/ral2026/eval/main",
     mask_mode: str | None = None, mask_lo_s: float = 0.5, mask_hi_s: float = 1.0,
 ) -> list[str]:
     trial_seed = TRIAL_SEED_BASE + trial
@@ -227,7 +227,7 @@ def build_priority_plan(
     trials_per_condition: int = 1,
     python_exe: str | None = None,
     task_id: str = TASK_ID,
-    eval_logs_root: str = "eval_logs",
+    eval_logs_root: str = "data/ral2026/eval/main",
     model_filter: list[str] | None = None,
     condition_filter: list[str] | None = None,
     mask_mode: str | None = None,
@@ -246,7 +246,7 @@ def build_priority_plan(
     design from build_eval_plan()'s full matrix.
 
     task_id/eval_logs_root/mask_mode default to the original Monday-batch
-    behavior (DR task, eval_logs/, no masking) - pass overrides to reuse this
+    behavior (DR task, data/ral2026/eval/main/, no masking) - pass overrides to reuse this
     same plan builder for the non-DR re-eval, trials>1 eval-noise cells, and
     Model C far-future masking ablation, each writing to its own
     eval_logs_root so none of them mix with the original 75-job output.
@@ -342,7 +342,7 @@ def main() -> None:
     parser.add_argument(
         "--manifest",
         type=str,
-        default=str(REPO_ROOT / "eval_logs" / "eval_matrix_manifest.json"),
+        default=str(REPO_ROOT / "data" / "ral2026" / "eval" / "main" / "eval_matrix_manifest.json"),
         help="JSON file used to record per-job status (only written when --dry_run is not set).",
     )
     parser.add_argument(
@@ -356,10 +356,10 @@ def main() -> None:
     parser.add_argument(
         "--eval_logs_root",
         type=str,
-        default="eval_logs",
+        default="data/ral2026/eval/main",
         help="Root output directory passed through to play_sim_rhythm.py/play_sim_midi.py's own "
              "--eval_logs_root, so alternate eval passes (non-DR, trials>1, masking) never write "
-             "into the main eval_logs/ tree. Only consulted with --priority.",
+             "into the main data/ral2026/eval/main/ tree. Only consulted with --priority.",
     )
     parser.add_argument(
         "--models",

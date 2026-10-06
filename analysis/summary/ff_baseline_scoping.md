@@ -227,7 +227,7 @@ go/no-goの推奨は末尾(§5)。
 (FFは非学習コントローラで、既存の学習済みチェックポイントに相当するものを
 必要としない)。必要なのは既存`play_sim_rhythm.py`/`play_sim_midi.py`と
 同オーダーの**eval実行のみ**(num_envs=1、既存A-Eモデルのevalと同程度の
-軽量ジョブ、docs/monday_run.mdの既存eval実測値から数分/ジョブ程度と推測)。
+軽量ジョブ、既存eval実測値から数分/ジョブ程度と推測)。
 Phase 0の逆算モジュール単体検証は**GPU/IsaacLab起動すら不要**
 (pneumatic.py/pam.pyがisaaclab非依存の純torchのため)。
 

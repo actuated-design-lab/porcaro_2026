@@ -1,13 +1,13 @@
 """ral_data.py — 図スクリプトが使う集計済みCSVの読み込みと、共通の統計処理。
 
-読むのは `paper_data/` 以下のCSVだけ。GPU も isaaclab も torch も使わない。
+読むのは `data/ral2026/paper/` 以下のCSVだけ。GPU も isaaclab も torch も使わない。
 
-  paper_data/sim/sim_summary_1N.csv       sim 本評価 75ラン（A-E x 5seed x 3曲）
-  paper_data/sim/sim_strikes_1N.csv       同・打点ごと
-  paper_data/tau/tau_summary_1N.csv       tau スイープ 81ラン
-  paper_data/hardware/hw_summary_s4_1N.csv  実機 第4セッション 105ラン
-  paper_data/hardware/hw_strikes_s4_1N.csv  同・打点ごと
-  paper_data/ablation/mask_{zero,noise,shuffle}_summary_1N.csv  マスク各15ラン
+  data/ral2026/paper/sim/sim_summary_1N.csv       sim 本評価 75ラン（A-E x 5seed x 3曲）
+  data/ral2026/paper/sim/sim_strikes_1N.csv       同・打点ごと
+  data/ral2026/paper/tau/tau_summary_1N.csv       tau スイープ 81ラン
+  data/ral2026/paper/hardware/hw_summary_s4_1N.csv  実機 第4セッション 105ラン
+  data/ral2026/paper/hardware/hw_strikes_s4_1N.csv  同・打点ごと
+  data/ral2026/paper/ablation/mask_{zero,noise,shuffle}_summary_1N.csv  マスク各15ラン
 
 判定は sim・実機とも 1N（min_strike_frac=0.05 x target_ref=20N）、許容 +/-30ms で統一。
 解析単位は「学習シード」（n=5）であってランではない。
@@ -22,7 +22,7 @@ import pandas as pd
 from scipy import stats
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DATA = REPO_ROOT / "paper_data"
+DATA = REPO_ROOT / "data" / "ral2026" / "paper"
 
 # 条件名。sim と実機で表記が違うので、ここで一元化する。
 GMD03_SIM = "gmd_03_high_bpm138"
