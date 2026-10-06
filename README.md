@@ -33,7 +33,11 @@ porcaro_2026/
  │   │   │   └── models/                   # Exported ONNX policies + manifest_fragment.yaml for jetson_project
  │   │   └── jfps2026/                     # JFPS 2026 Autumn Conference
  │   │       └── replay/                   # Open-loop replay results (scripts/replay_open_loop.py)
- │   ├── user1/ ...                        # (created by each user as needed)
+ │   ├── user1/                            # Same for user1-3; each starts with two templates:
+ │   │   ├── conference1/                  #   conference talk template (copy + rename, e.g. robomech2027/)
+ │   │   └── paper1/                       #   journal paper template   (copy + rename, e.g. ral2027/)
+ │   ├── user2/ ...
+ │   ├── user3/ ...
  │   └── migrate_old_layout.py             # One-off: move untracked data from older layouts
  ├── docs/                                 # Notes (e.g. magic-number audit for the RA-L paper)
  ├── logs/                                 # (git-ignored) Isaac Lab training logs, written by scripts/rsl_rl/train.py
@@ -101,6 +105,7 @@ porcaro_2026/
 All experiment data lives under `data/<user>/<venue>/`: first **who** produced it (the same `userN` as their folder in
 `source/.../tasks/direct/porcaro_2026/`), then **for which venue / purpose** (`ral2026`, `jfps2026`, `thesis`, ...).
 Code never lives under `data/` (except the one-off migration script), and data never lives at the repository root.
+Every folder under `data/` has a `README.md` (in Japanese) describing what goes in it.
 
 Rules:
 
@@ -276,7 +281,7 @@ To add a new user (e.g., `user3`):
 3. Verify with `python scripts/list_envs.py`.
 
 The parent `__init__.py` imports every `user*/` package automatically, so it does not need to be edited.
-Create `data/user3/` when you first have data to store.
+Store their data under `data/user3/` (start from the `conference1/` / `paper1/` templates there).
 
 ---
 
