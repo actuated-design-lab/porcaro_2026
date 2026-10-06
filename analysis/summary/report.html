@@ -66,7 +66,7 @@ ul.facts li { margin-bottom: 0.5rem; }
           <td>R3 Weakness-2「0.5sが普遍的最適という主張はcorrelational」への実データ提示。R4「0.5sが実際に最適という主張はrobot/task/reward依存であることに注意、簡単なタスクでは差が出ない可能性」に対応(double_160では全群横並びを確認)。</td>
           <td>double_160(基本) / gmd_03_high_bpm138 / gmd_04_extreme_bpm170、A-E×5seed</td>
           <td>5 seed/model</td>
-          <td><code>data/ral2026/eval/main/ → analysis/outputs/eval_summary.csv, eval_seed_level.csv, memory_group_comparison.csv</code></td>
+          <td><code>data/user0/ral2026/eval/main/ → analysis/outputs/eval_summary.csv, eval_seed_level.csv, memory_group_comparison.csv</code></td>
           <td>GMD2条件でA≪B≈C、D<B≈E。double_160では全群のCIが重なり横並び。Dは5 seed中2 seed(3,5)がGMD条件で0%に崩壊(下記図C参照)。</td>
         </tr>
 <tr>
@@ -82,7 +82,7 @@ ul.facts li { margin-bottom: 0.5rem; }
           <td>同上(R4のhorizon選択根拠、R3の correlational 指摘の両方に関連)。</td>
           <td>τスイープ27runをdouble_160/gmd_03/gmd_04で評価(trial=1)</td>
           <td>3 seed/cell</td>
-          <td><code>data/ral2026/eval/tau_sweep/ → tau_lookahead_success_rate_by_condition.csv, tau_optimal_lookahead_gmd.csv</code></td>
+          <td><code>data/user0/ral2026/eval/tau_sweep/ → tau_lookahead_success_rate_by_condition.csv, tau_optimal_lookahead_gmd.csv</code></td>
           <td>GMD限定で最適lookaheadはτ=0.5→0.5s, τ=1.0→0.5s, τ=2.0→2.0s。trend(単調ではあるが2点は同値、n=3で分散大、τ=2.0は探索グリッドの右端が最適=頭打ち未確認)。</td>
         </tr>
 <tr>
@@ -90,7 +90,7 @@ ul.facts li { margin-bottom: 0.5rem; }
           <td>R3/R4の特定の一文には対応しないが、AE要約全体の「claimがfully supportされていない」という懸念に対する頑健性チェックとして位置づけ(直接の指摘ではなく内部仮説検証)。検証対象仮説:「Bのlh=0.5sはDR(±20% τ)に過剰適応しており、そのsim内gapがsim-to-realギャップの一因」→ 本データで<b>棄却</b>(後述)。</td>
           <td>A-E×5seedを非DR task(Template-Porcaro-2026-ModelB-user0)で再eval</td>
           <td>5 seed/model</td>
-          <td><code>data/ral2026/eval/nondr/ → dr_vs_nondr_comparison.csv</code></td>
+          <td><code>data/user0/ral2026/eval/nondr/ → dr_vs_nondr_comparison.csv</code></td>
           <td>モデル×条件でΔ(非DR−DR)の符号・大きさに系統性なし(Bが他モデルより系統的に悪化するパターンは見られない) → 「BのDR過剰適応」仮説棄却。</td>
         </tr>
 <tr>
@@ -98,7 +98,7 @@ ul.facts li { margin-bottom: 0.5rem; }
           <td>R4 Minor「GMDタスクの評価プロトコル(trial数)を基本タスクと同程度明示すべき」に対するsim側の定量化 — ただしこれは<b>sim評価のtrial間ばらつき</b>であり、R4が言う実機trial数の報告そのものの代替にはならない点に注意。</td>
           <td>B/C/D/E × gmd_03/gmd_04、各seedでR=5 trial</td>
           <td>5 seed/model</td>
-          <td><code>data/ral2026/eval/trials5/ → trials5_eval_noise.csv</code></td>
+          <td><code>data/user0/ral2026/eval/trials5/ → trials5_eval_noise.csv</code></td>
           <td>B/C/Eではseed間ばらつき>評価(trial間)ばらつき。Dはseed間ばらつきが突出して大きいが、これはDのbimodal崩壊(2 seedが0%)によるものであり、評価ノイズ自体は他モデルと同程度(下記図E参照)。</td>
         </tr>
 <tr>
@@ -106,7 +106,7 @@ ul.facts li { margin-bottom: 0.5rem; }
           <td>R3 Weakness-3b「fixed-lookahead design conflates anticipation with information; 1.0s horizonの劣化はirrelevantな長期cueへの過学習の可能性があり、本質的なtrade-offと切り分けられていない」に<b>直接対応する追加実験</b>。Model C(lh=1.0s)の遠い将来(0.5-1.0s)部分を意図的に破壊し、性能変化を見ることでその情報が実際に使われているかを診断。</td>
           <td>Model C(lh=1.0s)、遠未来0.5-1.0s部分をzero/noise/shuffleで破壊 vs baseline</td>
           <td>5 seed</td>
-          <td><code>data/ral2026/eval/mask_{zero,noise,shuffle}/ → mask_comparison.csv</code></td>
+          <td><code>data/user0/ral2026/eval/mask_{zero,noise,shuffle}/ → mask_comparison.csv</code></td>
           <td>zero/shuffleはbaselineとほぼ同水準(3条件ともCI重複)。noiseのみ明確に低下。→ 遠未来情報が無くても(zero/shuffle)性能は落ちない一方、誤情報(noise)には敏感 — 「不要な情報への過学習」という単純な説明とは整合しにくい(下記図E参照、解釈は要議論)。</td>
         </tr></tbody>
     </table></div>

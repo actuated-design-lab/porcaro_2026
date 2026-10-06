@@ -7,8 +7,8 @@
 データは IROS 期（2026-02）のモデル検証実験そのもの。同一の指令信号を実機と
 シミュレータに与え、それぞれ独立に記録したログを重ねている。
 
-  data/ral2026/paper/validation/real/data_exp{1,2,3}_*.csv   実機（200 Hz）
-  data/ral2026/paper/validation/sim/sim_log_ModelB_exp{1,2,3}_*.csv  sim（50 Hz）
+  data/user0/ral2026/paper/validation/real/data_exp{1,2,3}_*.csv   実機（200 Hz）
+  data/user0/ral2026/paper/validation/sim/sim_log_ModelB_exp{1,2,3}_*.csv  sim（50 Hz）
 
 ★配色は論文全体の規約に従う: **暖色 = 実機 / 寒色 = シミュレーション**。
   Fig.4/5 の「青 = Simulation、橙 = Hardware」と同じ意味付けにしてある。
@@ -43,7 +43,7 @@ from ral_figstyle import (  # noqa: E402
     INK, INK_MUTED, OKABE_ITO, apply_style, base_argparser, save, tidy,
 )
 
-DATA = REPO_ROOT / "data" / "ral2026" / "paper" / "validation"
+DATA = REPO_ROOT / "data" / "user0" / "ral2026" / "paper" / "validation"
 
 C_REAL = OKABE_ITO["vermillion"]   # 実機 = 暖色（Fig.4/5 の Hardware と同じ）
 C_SIM = OKABE_ITO["blue"]          # sim  = 寒色（Fig.4/5 の Simulation と同じ）

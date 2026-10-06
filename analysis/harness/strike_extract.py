@@ -1,7 +1,7 @@
 """Strike-level extraction from simulation_log.csv-shaped data.
 
 Task A finding (see analysis notes / chat): target_force in
-data/ral2026/eval/main/2026-03-01_08-00-23/model_1499/double_120bpm/simulation_log.csv is
+data/user0/ral2026/eval/main/2026-03-01_08-00-23/model_1499/double_120bpm/simulation_log.csv is
 TIME-VARYING (a piecewise-constant/staircase sampling of the super-Gaussian
 strike kernel, held per control step) - it is NOT a constant column. Its
 local maxima (peaks, reaching the target hit force at the kernel center)

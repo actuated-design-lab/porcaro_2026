@@ -2,7 +2,7 @@
 aggregate_tau_strikes.py — τスイープの評価結果を 1N 判定で集計する。
 
 ■ 前提
-  data/ral2026/eval/tau_sweep/ に既に 81ジョブ（27run × 3条件）の
+  data/user0/ral2026/eval/tau_sweep/ に既に 81ジョブ（27run × 3条件）の
   simulation_log.csv が書き出されている（2026-07-20 実行済み）。
   ここでは **GPUを使わず、そのCSVを読み直すだけ**。
 
@@ -12,8 +12,8 @@ aggregate_tau_strikes.py — τスイープの評価結果を 1N 判定で集計
   本体eval・実機と揃えるために 1N（min_strike_frac=0.05）を使う。
 
 ■ 出力
-  data/ral2026/eval/tau_sweep/tau_summary_1N.csv … run×条件ごとの success_rate 等
-  data/ral2026/eval/tau_sweep/tau_strikes_1N.csv … 打点ごと（誤差分布用）
+  data/user0/ral2026/eval/tau_sweep/tau_summary_1N.csv … run×条件ごとの success_rate 等
+  data/user0/ral2026/eval/tau_sweep/tau_strikes_1N.csv … 打点ごと（誤差分布用）
   さらに標準出力に「τ × lookahead」のピボット表を出す（Fig.6 のもと）
 
 ■ run ディレクトリ名の規約（Claude Code の調査結果より）
@@ -66,7 +66,7 @@ def bpm_from_tag(tag: str):
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--eval_logs", default=str(REPO_ROOT / "data" / "ral2026" / "eval" / "tau_sweep"))
+    ap.add_argument("--eval_logs", default=str(REPO_ROOT / "data" / "user0" / "ral2026" / "eval" / "tau_sweep"))
     ap.add_argument("--logs_root", default=str(REPO_ROOT / "logs" / "rsl_rl_tau_sweep"))
     ap.add_argument("--min_strike_frac", type=float, default=MIN_STRIKE_FRAC_1N)
     ap.add_argument("--tol_ms", type=float, default=TOL_MS)

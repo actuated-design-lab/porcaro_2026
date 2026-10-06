@@ -1,0 +1,16 @@
+# Shared parts of the repository: changes here request a review from the owners below.
+# Each user's own folders (source/.../userN/, data/userN/) have no owner and can be edited freely.
+# See "Team Workflow" in README.md.
+
+/source/porcaro_2026/porcaro_2026/tasks/direct/porcaro_2026/common/    @Tsukasa-B
+/source/porcaro_2026/porcaro_2026/tasks/direct/porcaro_2026/__init__.py @Tsukasa-B
+/source/porcaro_2026/config/      @Tsukasa-B
+/source/porcaro_2026/setup.py     @Tsukasa-B
+/source/porcaro_2026/pyproject.toml @Tsukasa-B
+/scripts/                         @Tsukasa-B
+/analysis/                        @Tsukasa-B
+/data/common/                     @Tsukasa-B
+/.github/                         @Tsukasa-B
+/.gitignore                       @Tsukasa-B
+/environment.yml                  @Tsukasa-B
+/README.md                        @Tsukasa-B

@@ -19,7 +19,7 @@ analysis/eval/run_eval_matrix.py と同じ設計思想:
   3. --dry_run を外すと、1 checkpoint ずつ順番に subprocess 実行
      （GPUは共有リソースなので並列化しない）。
   4. 成功した export について、onnx パッケージ（GPU不要）で
-     入力次元をその場で検算し、data/ral2026/models/manifest_fragment.yaml に
+     入力次元をその場で検算し、data/user0/ral2026/models/manifest_fragment.yaml に
      jetson_project の manifest.yaml と同じ形式で書き出す。
      ズレていたら経緯を表示して該当行を書かない（黙って合わせない）。
 
@@ -45,8 +45,8 @@ sys.path.insert(0, str(REPO_ROOT))
 from analysis.harness.discover import discover_all_runs  # noqa: E402
 from analysis.eval.run_eval_matrix import AGENT_BY_MODEL, MODEL_ENV_OVERRIDES, TASK_ID  # noqa: E402
 
-STAGING_DIR = REPO_ROOT / "data" / "ral2026" / "models" / "staging"
-FRAGMENT_PATH = REPO_ROOT / "data" / "ral2026" / "models" / "manifest_fragment.yaml"
+STAGING_DIR = REPO_ROOT / "data" / "user0" / "ral2026" / "models" / "staging"
+FRAGMENT_PATH = REPO_ROOT / "data" / "user0" / "ral2026" / "models" / "manifest_fragment.yaml"
 MODEL_LABELS = {
     "A": "A: LSTM, lookahead=0.1s",
     "B": "B: LSTM, lookahead=0.5s",

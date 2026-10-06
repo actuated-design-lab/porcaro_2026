@@ -2,7 +2,10 @@
 
 背景
 ----
-2026-10 のディレクトリ整理で、ルート直下のデータ系ディレクトリを data/ 配下へ移した。
+2026-10 のディレクトリ整理で、データ系ディレクトリを data/<user>/<学会・目的>/ 配下へ移した。
+対応する旧配置は2つ:
+  (1) ルート直下（eval_logs*/, eval_assets/, paper_data/, models/, out/）… 2026-10-06 以前
+  (2) data/<学会>/（data/ral2026/, data/jfps2026/）… 2026-10-06〜10-07 の一時的な配置
 git が動かすのは「追跡されているファイル」だけなので、.gitignore 対象の実データ
 （simulation_log.csv, *.onnx, hardware/ablation/validation の CSV など）は
 git pull 後も旧ディレクトリに取り残される。このスクリプトはそれを新しい場所へ移す。
@@ -34,17 +37,21 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 # (旧パス, 新パス) — リポジトリルートからの相対パス
 MAPPING: list[tuple[str, str]] = [
+    # (1) ルート直下の旧配置
     ("eval_assets/midi", "data/common/midi"),
-    ("eval_logs", "data/ral2026/eval/main"),
-    ("eval_logs_nondr", "data/ral2026/eval/nondr"),
-    ("eval_logs_trials5", "data/ral2026/eval/trials5"),
-    ("eval_logs_tau_sweep", "data/ral2026/eval/tau_sweep"),
-    ("eval_logs_mask_zero", "data/ral2026/eval/mask_zero"),
-    ("eval_logs_mask_noise", "data/ral2026/eval/mask_noise"),
-    ("eval_logs_mask_shuffle", "data/ral2026/eval/mask_shuffle"),
-    ("paper_data", "data/ral2026/paper"),
-    ("models/RAL", "data/ral2026/models"),
-    ("out/sim", "data/jfps2026/replay"),
+    ("eval_logs", "data/user0/ral2026/eval/main"),
+    ("eval_logs_nondr", "data/user0/ral2026/eval/nondr"),
+    ("eval_logs_trials5", "data/user0/ral2026/eval/trials5"),
+    ("eval_logs_tau_sweep", "data/user0/ral2026/eval/tau_sweep"),
+    ("eval_logs_mask_zero", "data/user0/ral2026/eval/mask_zero"),
+    ("eval_logs_mask_noise", "data/user0/ral2026/eval/mask_noise"),
+    ("eval_logs_mask_shuffle", "data/user0/ral2026/eval/mask_shuffle"),
+    ("paper_data", "data/user0/ral2026/paper"),
+    ("models/RAL", "data/user0/ral2026/models"),
+    ("out/sim", "data/user0/jfps2026/replay"),
+    # (2) data/<学会>/ の一時配置
+    ("data/ral2026", "data/user0/ral2026"),
+    ("data/jfps2026", "data/user0/jfps2026"),
 ]
 
 # 中身が空になったら消してよい親ディレクトリ

@@ -16,9 +16,9 @@ Design:
   read, exactly like discover.py does for the A-E model matrix.
 - classify_tau_cell() (analysis/harness/identify.py) replaces classify_model()
   - it keys off pam_tau_scale_range instead of policy/frame-stacking type.
-- Output: data/ral2026/eval/tau_sweep/{run_tag}/{ckpt}/{condition}_trial{t}/ - a
-  separate tree from data/ral2026/eval/main/, so the 81 tau-sweep eval jobs (27 runs x 3
-  MONDAY_PRIORITY_CONDITIONS) never mix with the main A-E data/ral2026/eval/main/ output.
+- Output: data/user0/ral2026/eval/tau_sweep/{run_tag}/{ckpt}/{condition}_trial{t}/ - a
+  separate tree from data/user0/ral2026/eval/main/, so the 81 tau-sweep eval jobs (27 runs x 3
+  MONDAY_PRIORITY_CONDITIONS) never mix with the main A-E data/user0/ral2026/eval/main/ output.
 - Each play_sim_*.py invocation passes both --lookahead_horizon and
   --pam_tau_scale read from that specific run's own env.yaml (not a fixed
   MODEL_ENV_OVERRIDES table, since every one of the 27 runs has a distinct
@@ -54,8 +54,8 @@ from analysis.eval.run_eval_matrix import (  # noqa: E402
 TAU_SWEEP_LOGS_ROOT = REPO_ROOT / "logs" / "rsl_rl_tau_sweep"
 TAU_SWEEP_EXPERIMENT_DIR = "porcaro_rslrl_lstm_modelB_DR"  # all 27 runs used the LSTM agent cfg
 TAU_SWEEP_AGENT = "rsl_rl_lstm_cfg_entry_point"
-DEFAULT_EVAL_LOGS_ROOT = "data/ral2026/eval/tau_sweep"
-DEFAULT_MANIFEST = REPO_ROOT / "data" / "ral2026" / "eval" / "tau_sweep" / "eval_tau_sweep_manifest.json"
+DEFAULT_EVAL_LOGS_ROOT = "data/user0/ral2026/eval/tau_sweep"
+DEFAULT_MANIFEST = REPO_ROOT / "data" / "user0" / "ral2026" / "eval" / "tau_sweep" / "eval_tau_sweep_manifest.json"
 
 TAU_RUN_DIR_RE = re.compile(
     r"^(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})_tau[\d.]+_lh[\d.]+_seed(\d+)$"
