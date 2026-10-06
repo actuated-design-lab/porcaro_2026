@@ -11,26 +11,30 @@ This project simulates and trains **Porcaro**, a drumming robot driven by Pneuma
 
 ```text
 porcaro_2026/
+ ├── .github/
+ │   └── CODEOWNERS                        # Review owners for shared code (see "Team Workflow")
  ├── analysis/                             # Offline evaluation, aggregation and figure scripts (code only)
- │   ├── eval/                             # Eval drivers + aggregation -> writes into data/<venue>/eval/
- │   ├── export/                           # ONNX export for the real robot -> data/<venue>/models/
+ │   ├── eval/                             # Eval drivers + aggregation -> writes into data/<user>/<venue>/eval/
+ │   ├── export/                           # ONNX export for the real robot -> data/<user>/<venue>/models/
  │   ├── harness/                          # Shared helpers (run discovery, strike extraction, stats)
- │   └── summary/                          # Paper figures (fig*.py) and report; reads data/<venue>/paper/
+ │   └── summary/                          # Paper figures (fig*.py) and report; reads data/<user>/<venue>/paper/
  ├── data/                                 # All experiment data (see "Data Layout" below)
- │   ├── common/                           # Inputs shared across venues
+ │   ├── common/                           # Inputs shared by everyone
  │   │   └── midi/                         # Evaluation MIDI files
- │   ├── ral2026/                          # IEEE RA-L submission (2026-09-02)
- │   │   ├── eval/                         # Raw sim eval logs (simulation_log.csv trees + manifests)
- │   │   │   ├── main/                     # Model A-E main eval (75 jobs)
- │   │   │   ├── nondr/                    # A-E re-evaluated without domain randomization
- │   │   │   ├── trials5/                  # Repeated trials for eval-noise estimation
- │   │   │   ├── tau_sweep/                # PAM time-constant (tau) x lookahead sweep
- │   │   │   └── mask_{zero,noise,shuffle}/ # Far-future observation masking ablation
- │   │   ├── paper/                        # Frozen CSVs the paper figures read (sim/tau/hardware/ablation/validation)
- │   │   └── models/                       # Exported ONNX policies + manifest_fragment.yaml for jetson_project
- │   ├── jfps2026/                         # JFPS 2026 Autumn Conference
- │   │   └── replay/                       # Open-loop replay results (scripts/replay_open_loop.py)
- │   └── migrate_old_layout.py             # One-off: move untracked data from the pre-2026-10 layout
+ │   ├── user0/                            # One folder per user (same name as source/.../user0/)
+ │   │   ├── ral2026/                      # IEEE RA-L submission (2026-09-02, tag: ral2026-submit)
+ │   │   │   ├── eval/                     # Raw sim eval logs (simulation_log.csv trees + manifests)
+ │   │   │   │   ├── main/                 # Model A-E main eval (75 jobs)
+ │   │   │   │   ├── nondr/                # A-E re-evaluated without domain randomization
+ │   │   │   │   ├── trials5/              # Repeated trials for eval-noise estimation
+ │   │   │   │   ├── tau_sweep/            # PAM time-constant (tau) x lookahead sweep
+ │   │   │   │   └── mask_{zero,noise,shuffle}/ # Far-future observation masking ablation
+ │   │   │   ├── paper/                    # Frozen CSVs the paper figures read (sim/tau/hardware/ablation/validation)
+ │   │   │   └── models/                   # Exported ONNX policies + manifest_fragment.yaml for jetson_project
+ │   │   └── jfps2026/                     # JFPS 2026 Autumn Conference
+ │   │       └── replay/                   # Open-loop replay results (scripts/replay_open_loop.py)
+ │   ├── user1/ ...                        # (created by each user as needed)
+ │   └── migrate_old_layout.py             # One-off: move untracked data from older layouts
  ├── docs/                                 # Notes (e.g. magic-number audit for the RA-L paper)
  ├── logs/                                 # (git-ignored) Isaac Lab training logs, written by scripts/rsl_rl/train.py
  ├── scripts/                              # Execution scripts for training and inference
@@ -57,8 +61,8 @@ porcaro_2026/
  │       │   └── CHANGELOG.rst
  │       └── porcaro_2026/
  │           └── tasks/direct/porcaro_2026/
- │               ├── __init__.py           # Imports user0, user1 submodules
- │               ├── common/              # Shared modules across all users
+ │               ├── __init__.py           # Auto-imports every user*/ package (no edit needed per user)
+ │               ├── common/              # Shared modules across all users (backward-compatible changes only)
  │               │   └── actions/
  │               │       ├── base.py
  │               │       ├── pam.py
@@ -94,29 +98,31 @@ porcaro_2026/
 
 ### Data Layout
 
-All experiment data lives under `data/`, grouped first by **venue / purpose** and then by **kind of experiment**.
+All experiment data lives under `data/<user>/<venue>/`: first **who** produced it (the same `userN` as their folder in
+`source/.../tasks/direct/porcaro_2026/`), then **for which venue / purpose** (`ral2026`, `jfps2026`, `thesis`, ...).
 Code never lives under `data/` (except the one-off migration script), and data never lives at the repository root.
 
 Rules:
 
-1. **Put data under the venue/purpose it was first produced for** (`data/ral2026/`, `data/jfps2026/`, ...).
-   When later work (thesis, talks, a follow-up paper) reuses it, **refer to it by path — do not copy it**.
-   This keeps one authoritative copy per dataset.
-2. **Inputs shared by several venues** (e.g. evaluation MIDI files) go in `data/common/`.
-3. Inside a venue folder, use these sub-folders as needed:
+1. **Write only under your own `data/<user>/`.** Because every user has their own folder, two people presenting at the
+   same conference never collide (`data/user0/robomech2027/` vs `data/user1/robomech2027/`).
+2. **Put data under the venue/purpose it was first produced for.** When later work (thesis, talks, a follow-up paper)
+   reuses it, **refer to it by path — do not copy it**. This keeps one authoritative copy per dataset.
+3. **Inputs shared by everyone** (e.g. evaluation MIDI files) go in `data/common/`.
+4. Inside a venue folder, use these sub-folders as needed:
    - `eval/<experiment>/` — raw outputs of evaluation runs (`simulation_log.csv` trees and their manifests)
    - `paper/` — the frozen, aggregated CSVs that the paper's figures actually read. Treat as read-only after submission.
    - `models/` — exported policies handed to the real robot (`jetson_project`)
    - other purpose-specific folders (e.g. `replay/`) when nothing above fits
-4. **New experiments must pass their output path explicitly**, e.g.
-   `--eval_logs_root data/<venue>/eval/<experiment>`. The defaults in `analysis/` point to `data/ral2026/` so that
-   the RA-L pipeline (`analysis/run_all_offline.sh`) reproduces as-is; do not let new runs fall into it.
-   (`scripts/rsl_rl/play_sim_*.py` run without `--eval_logs_root` still write to `./eval_logs/` at the root.)
-5. Most data files (`*.csv`, `*.npy`, `*.onnx`, ...) are git-ignored and exist only on the lab machines.
+5. **New experiments must pass their output path explicitly**, e.g.
+   `--eval_logs_root data/<user>/<venue>/eval/<experiment>`. The defaults in `analysis/` point to
+   `data/user0/ral2026/` so that the RA-L pipeline (`analysis/run_all_offline.sh`) reproduces as-is; do not let new
+   runs fall into it. (`scripts/rsl_rl/play_sim_*.py` run without `--eval_logs_root` still write to `./eval_logs/`.)
+6. Most data files (`*.csv`, `*.npy`, `*.onnx`, ...) are git-ignored and exist only on the lab machines.
 
-Migrating a working copy from the old layout (`eval_logs*/`, `eval_assets/`, `paper_data/`, `models/`, `out/` at the root):
-after pulling, run `python data/migrate_old_layout.py` to preview and `python data/migrate_old_layout.py --apply`
-to move the git-ignored data into the new locations.
+Migrating a working copy from an older layout (`eval_logs*/`, `eval_assets/`, `paper_data/`, `models/`, `out/` at the
+root, or `data/ral2026/`, `data/jfps2026/`): after pulling, run `python data/migrate_old_layout.py` to preview and
+`python data/migrate_old_layout.py --apply` to move the git-ignored data into the new locations.
 
 ---
 
@@ -263,9 +269,36 @@ python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user1
 
 ## 🧩 Adding a New User
 
-To add a new user (e.g., `user2`):
+To add a new user (e.g., `user3`):
 
-1. Copy the `user0/` directory and rename it to `user2/`.
-2. Edit `user2/__init__.py` to register new task IDs (e.g., `Template-Porcaro-2026-ModelB-user2`).
-3. Add `from . import user2` to the parent `__init__.py`.
-4. Verify with `python scripts/list_envs.py`.
+1. Copy an existing user directory (e.g. `user0/`) and rename it to `user3/`.
+2. Edit `user3/__init__.py` to register new task IDs (e.g., `Template-Porcaro-2026-ModelB-user3`).
+3. Verify with `python scripts/list_envs.py`.
+
+The parent `__init__.py` imports every `user*/` package automatically, so it does not need to be edited.
+Create `data/user3/` when you first have data to store.
+
+---
+
+## 👥 Team Workflow
+
+Each member works in **their own folders**, so changes from different members never conflict:
+
+| Yours (edit freely) | Shared (keep changes minimal, reviewed by `.github/CODEOWNERS`) |
+|---|---|
+| `source/.../porcaro_2026/userN/` | `source/.../porcaro_2026/common/` |
+| `data/userN/` | `scripts/`, `analysis/`, `data/common/` |
+| personal tools: put them in `userN/tools/` | `README.md`, `.gitignore`, `environment.yml` |
+
+Rules:
+
+1. **Use short-lived branches, not one branch per person.** Branch off `master` for a piece of work
+   (`userN/<topic>`, e.g. `user1/discrete-torque`), open a PR, and merge as soon as it runs.
+   Folders already keep everyone separate, so there is nothing to gain from a long-lived personal branch —
+   it only drifts away from `master`. Before starting new work, update from `master` (`git pull origin master`).
+2. **Changes to `common/` must be backward compatible.** Add new parameters with a default that reproduces the
+   previous behavior, so other users' results do not change silently. If a breaking change is unavoidable,
+   tell everyone in the PR description.
+3. **Tag the commit used for each submission**, e.g. `git tag ral2026-submit <commit> && git push origin ral2026-submit`.
+   Reviews and camera-ready revisions can then start from exactly the submitted code.
+4. Use the same `git config user.name` / `user.email` on every machine so history stays readable.

@@ -3,7 +3,7 @@
 Two independent re-aggregations, both reusing analysis/eval/aggregate_offline.py's
 extract_strikes_tree() / TAU_RUN_TAG_RE and analysis.harness.stats' seed_level()/
 across_seed() - no new GPU eval is launched here, this only re-reads
-data/ral2026/eval/tau_sweep/ and data/ral2026/eval/nondr/ (already fully populated - see
+data/user0/ral2026/eval/tau_sweep/ and data/user0/ral2026/eval/nondr/ (already fully populated - see
 their manifest.json, both 100% status=="success") plus the existing DR
 baseline in analysis/outputs/eval_strikes_raw.csv.
 
@@ -16,7 +16,7 @@ baseline in analysis/outputs/eval_strikes_raw.csv.
       averages over all 3 conditions including double_160).
 
 (2) DR vs non-DR, model x condition:
-    - data/ral2026/eval/nondr/ (Model A-E re-evaluated under the non-DR task) vs the
+    - data/user0/ral2026/eval/nondr/ (Model A-E re-evaluated under the non-DR task) vs the
       original DR eval (analysis/outputs/eval_strikes_raw.csv from the
       Monday Layer2a pass), joined on (model, condition)
       (dr_vs_nondr_comparison.csv).
@@ -43,7 +43,7 @@ GMD_CONDITIONS = ["gmd_03_high_bpm138", "gmd_04_extreme_bpm170"]
 # (1) Tau-sweep, condition-by-condition
 # ---------------------------------------------------------------------------
 
-def tau_by_condition(eval_logs_root: Path = REPO_ROOT / "data" / "ral2026" / "eval" / "tau_sweep") -> tuple[pd.DataFrame, pd.DataFrame]:
+def tau_by_condition(eval_logs_root: Path = REPO_ROOT / "data" / "user0" / "ral2026" / "eval" / "tau_sweep") -> tuple[pd.DataFrame, pd.DataFrame]:
     strikes = extract_strikes_tree(eval_logs_root)
     if strikes.empty:
         raise RuntimeError(f"no simulation_log.csv under {eval_logs_root} - nothing to re-aggregate")
@@ -86,7 +86,7 @@ def tau_by_condition(eval_logs_root: Path = REPO_ROOT / "data" / "ral2026" / "ev
 # ---------------------------------------------------------------------------
 
 def dr_vs_nondr(
-    nondr_eval_logs_root: Path = REPO_ROOT / "data" / "ral2026" / "eval" / "nondr",
+    nondr_eval_logs_root: Path = REPO_ROOT / "data" / "user0" / "ral2026" / "eval" / "nondr",
     dr_strikes_csv: Path = OUTPUTS_DIR / "eval_strikes_raw.csv",
 ) -> pd.DataFrame:
     if not dr_strikes_csv.exists():
@@ -96,7 +96,7 @@ def dr_vs_nondr(
         )
 
     # run_tag -> (model, seed) via the authoritative A-E discovery table -
-    # data/ral2026/eval/nondr/ re-evaluated the exact same run_dirs as the main
+    # data/user0/ral2026/eval/nondr/ re-evaluated the exact same run_dirs as the main
     # matrix, just under the non-DR task, so run_tag identity is unchanged.
     runs_df = discover_all_runs(REPO_ROOT / "logs" / "rsl_rl")
     runs_df = runs_df[runs_df["status"] == "completed"]

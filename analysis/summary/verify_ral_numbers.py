@@ -107,7 +107,7 @@ def main() -> int:
         chk(f"マスク {tag} p", stats.ttest_rel(v, b0).pvalue, pm, 0.003)
 
     # --- §IV-B 妥当性 ---
-    HW = Path(__file__).resolve().parents[2] / "data" / "ral2026" / "paper" / "hardware"
+    HW = Path(__file__).resolve().parents[2] / "data" / "user0" / "ral2026" / "paper" / "hardware"
     anchors = {}
     for f, lab in [("hw_summary_s4_1N.csv", "S4"), ("summary_s2_1N.csv", "S2"), ("summary_s3_1N.csv", "S3")]:
         d_ = pd.read_csv(HW / f)

@@ -3,10 +3,10 @@
 #
 # Orchestrates the full "offline" (GPU eval only, zero training) pipeline
 # while the operator is away:
-#   (A) tau-sweep eval        - 27 runs x 3 conditions = 81 jobs -> data/ral2026/eval/tau_sweep/
-#   (B) non-DR re-eval        - A-E matrix, 75 jobs             -> data/ral2026/eval/nondr/
-#   (C) trials>1 eval-noise   - B/C/D/E x gmd_03/gmd_04, R=5     -> data/ral2026/eval/trials5/
-#   (D) far-future masking    - Model C x zero/noise/shuffle     -> data/ral2026/eval/mask_{mode}/
+#   (A) tau-sweep eval        - 27 runs x 3 conditions = 81 jobs -> data/user0/ral2026/eval/tau_sweep/
+#   (B) non-DR re-eval        - A-E matrix, 75 jobs             -> data/user0/ral2026/eval/nondr/
+#   (C) trials>1 eval-noise   - B/C/D/E x gmd_03/gmd_04, R=5     -> data/user0/ral2026/eval/trials5/
+#   (D) far-future masking    - Model C x zero/noise/shuffle     -> data/user0/ral2026/eval/mask_{mode}/
 #   + aggregation             - analysis/eval/aggregate_offline.py -> analysis/outputs/
 #
 # Idempotent: every step below is a run_eval_matrix.py / run_eval_tau_sweep.py
@@ -73,18 +73,18 @@ echo "########################################################################"
 echo "# (A) tau-sweep eval: 27 runs x 3 conditions (double_160/gmd_03/gmd_04)"
 echo "########################################################################"
 $PYTHON -u -m analysis.eval.run_eval_tau_sweep $DRY_RUN \
-    --eval_logs_root data/ral2026/eval/tau_sweep \
-    --manifest data/ral2026/eval/tau_sweep/eval_tau_sweep_manifest.json
-gate data/ral2026/eval/tau_sweep data/ral2026/eval/tau_sweep/eval_tau_sweep_manifest.json "A-tau-sweep"
+    --eval_logs_root data/user0/ral2026/eval/tau_sweep \
+    --manifest data/user0/ral2026/eval/tau_sweep/eval_tau_sweep_manifest.json
+gate data/user0/ral2026/eval/tau_sweep data/user0/ral2026/eval/tau_sweep/eval_tau_sweep_manifest.json "A-tau-sweep"
 
 echo "########################################################################"
 echo "# (B) non-DR re-eval of the A-E matrix (75 jobs)"
 echo "########################################################################"
 $PYTHON -u -m analysis.eval.run_eval_matrix --priority $DRY_RUN \
     --task_override Template-Porcaro-2026-ModelB-user0 \
-    --eval_logs_root data/ral2026/eval/nondr \
-    --manifest data/ral2026/eval/nondr/eval_matrix_manifest.json
-gate data/ral2026/eval/nondr data/ral2026/eval/nondr/eval_matrix_manifest.json "B-nondr"
+    --eval_logs_root data/user0/ral2026/eval/nondr \
+    --manifest data/user0/ral2026/eval/nondr/eval_matrix_manifest.json
+gate data/user0/ral2026/eval/nondr data/user0/ral2026/eval/nondr/eval_matrix_manifest.json "B-nondr"
 
 echo "########################################################################"
 echo "# (C) trials>1 eval-noise study: B/C/D/E x gmd_03/gmd_04, R=5 trials"
@@ -93,9 +93,9 @@ $PYTHON -u -m analysis.eval.run_eval_matrix --priority $DRY_RUN \
     --models B,C,D,E \
     --conditions gmd_03_high_bpm138,gmd_04_extreme_bpm170 \
     --trials_per_condition 5 \
-    --eval_logs_root data/ral2026/eval/trials5 \
-    --manifest data/ral2026/eval/trials5/eval_matrix_manifest.json
-gate data/ral2026/eval/trials5 data/ral2026/eval/trials5/eval_matrix_manifest.json "C-trials5"
+    --eval_logs_root data/user0/ral2026/eval/trials5 \
+    --manifest data/user0/ral2026/eval/trials5/eval_matrix_manifest.json
+gate data/user0/ral2026/eval/trials5 data/user0/ral2026/eval/trials5/eval_matrix_manifest.json "C-trials5"
 
 echo "########################################################################"
 echo "# (D) Model C far-future (0.5-1.0s) masking ablation: zero / noise / shuffle"
@@ -105,9 +105,9 @@ for mode in zero noise shuffle; do
     $PYTHON -u -m analysis.eval.run_eval_matrix --priority $DRY_RUN \
         --models C \
         --mask_mode "$mode" \
-        --eval_logs_root "data/ral2026/eval/mask_${mode}" \
-        --manifest "data/ral2026/eval/mask_${mode}/eval_matrix_manifest.json"
-    gate "data/ral2026/eval/mask_${mode}" "data/ral2026/eval/mask_${mode}/eval_matrix_manifest.json" "D-mask-${mode}"
+        --eval_logs_root "data/user0/ral2026/eval/mask_${mode}" \
+        --manifest "data/user0/ral2026/eval/mask_${mode}/eval_matrix_manifest.json"
+    gate "data/user0/ral2026/eval/mask_${mode}" "data/user0/ral2026/eval/mask_${mode}/eval_matrix_manifest.json" "D-mask-${mode}"
 done
 
 echo "########################################################################"

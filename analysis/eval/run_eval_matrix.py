@@ -117,7 +117,7 @@ def trial_count_for(pattern: str, bpm: int, heavy_r: int) -> int:
 
 def build_rhythm_command(
     python_exe: str, checkpoint: Path, agent: str, model: str, pattern: str, bpm: int, trial: int,
-    task_id: str = TASK_ID, eval_logs_root: str = "data/ral2026/eval/main",
+    task_id: str = TASK_ID, eval_logs_root: str = "data/user0/ral2026/eval/main",
     mask_mode: str | None = None, mask_lo_s: float = 0.5, mask_hi_s: float = 1.0,
 ) -> list[str]:
     trial_seed = TRIAL_SEED_BASE + trial
@@ -144,7 +144,7 @@ def build_rhythm_command(
 
 def build_midi_command(
     python_exe: str, checkpoint: Path, agent: str, model: str, midi_path: str, trial: int,
-    task_id: str = TASK_ID, eval_logs_root: str = "data/ral2026/eval/main",
+    task_id: str = TASK_ID, eval_logs_root: str = "data/user0/ral2026/eval/main",
     mask_mode: str | None = None, mask_lo_s: float = 0.5, mask_hi_s: float = 1.0,
 ) -> list[str]:
     trial_seed = TRIAL_SEED_BASE + trial
@@ -227,7 +227,7 @@ def build_priority_plan(
     trials_per_condition: int = 1,
     python_exe: str | None = None,
     task_id: str = TASK_ID,
-    eval_logs_root: str = "data/ral2026/eval/main",
+    eval_logs_root: str = "data/user0/ral2026/eval/main",
     model_filter: list[str] | None = None,
     condition_filter: list[str] | None = None,
     mask_mode: str | None = None,
@@ -246,7 +246,7 @@ def build_priority_plan(
     design from build_eval_plan()'s full matrix.
 
     task_id/eval_logs_root/mask_mode default to the original Monday-batch
-    behavior (DR task, data/ral2026/eval/main/, no masking) - pass overrides to reuse this
+    behavior (DR task, data/user0/ral2026/eval/main/, no masking) - pass overrides to reuse this
     same plan builder for the non-DR re-eval, trials>1 eval-noise cells, and
     Model C far-future masking ablation, each writing to its own
     eval_logs_root so none of them mix with the original 75-job output.
@@ -342,7 +342,7 @@ def main() -> None:
     parser.add_argument(
         "--manifest",
         type=str,
-        default=str(REPO_ROOT / "data" / "ral2026" / "eval" / "main" / "eval_matrix_manifest.json"),
+        default=str(REPO_ROOT / "data" / "user0" / "ral2026" / "eval" / "main" / "eval_matrix_manifest.json"),
         help="JSON file used to record per-job status (only written when --dry_run is not set).",
     )
     parser.add_argument(
@@ -356,10 +356,10 @@ def main() -> None:
     parser.add_argument(
         "--eval_logs_root",
         type=str,
-        default="data/ral2026/eval/main",
+        default="data/user0/ral2026/eval/main",
         help="Root output directory passed through to play_sim_rhythm.py/play_sim_midi.py's own "
              "--eval_logs_root, so alternate eval passes (non-DR, trials>1, masking) never write "
-             "into the main data/ral2026/eval/main/ tree. Only consulted with --priority.",
+             "into the main data/user0/ral2026/eval/main/ tree. Only consulted with --priority.",
     )
     parser.add_argument(
         "--models",

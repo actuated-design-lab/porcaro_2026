@@ -10,7 +10,7 @@ aggregate_sim_strikes.py — sim の simulation_log.csv を 1N 判定で再集�
   → strike_extract.extract_strikes(min_strike_frac=0.05) が 0.05 x 20N = 1N。
 
 ■ GPUは使わない
-  data/ral2026/eval/main/ に既に書き出されている simulation_log.csv を読むだけ。
+  data/user0/ral2026/eval/main/ に既に書き出されている simulation_log.csv を読むだけ。
   isaaclab / torch は import しない（pandas + numpy + scipy のみ）。
 
 Usage:
@@ -21,10 +21,10 @@ Usage:
   python analysis/eval/aggregate_sim_strikes.py
 
 出力:
-  data/ral2026/eval/main/sim_summary_1N.csv  … model, seed, task, trial, success_rate,
+  data/user0/ral2026/eval/main/sim_summary_1N.csv  … model, seed, task, trial, success_rate,
                                    abs_err_ms_mean, err_ms_mean, err_ms_std,
                                    peak_force_mean, miss_rate_force, n_strikes
-  data/ral2026/eval/main/sim_strikes_1N.csv  … 打点ごと（timing_err_ms, peak_force, success 等）
+  data/user0/ral2026/eval/main/sim_strikes_1N.csv  … 打点ごと（timing_err_ms, peak_force, success 等）
 """
 
 from __future__ import annotations
@@ -77,7 +77,7 @@ def condition_key(tag: str) -> str:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--eval_logs", default=str(REPO_ROOT / "data" / "ral2026" / "eval" / "main"))
+    ap.add_argument("--eval_logs", default=str(REPO_ROOT / "data" / "user0" / "ral2026" / "eval" / "main"))
     ap.add_argument("--min_strike_frac", type=float, default=MIN_STRIKE_FRAC_1N,
                     help="打撃と認める最小の力 / target_ref。既定 0.05 (=1N)")
     ap.add_argument("--tol_ms", type=float, default=TOL_MS)
@@ -104,7 +104,7 @@ def main() -> int:
 
     rows, strikes, skipped = [], [], []
     for p in logs:
-        # data/ral2026/eval/main/{run_tag}/{ckpt}/{condition_tag}/simulation_log.csv
+        # data/user0/ral2026/eval/main/{run_tag}/{ckpt}/{condition_tag}/simulation_log.csv
         try:
             cond_tag = p.parent.name
             ckpt = p.parent.parent.name
