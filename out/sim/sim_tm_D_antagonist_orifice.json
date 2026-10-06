@@ -1,0 +1,16 @@
+{
+  "signal": "/home/actuated/my_isaaclab_projects/jetson_project/test_signals/tm_D_antagonist.csv",
+  "pmodel": "orifice",
+  "params": {
+    "tau": 0.0856,
+    "L": 0.0442,
+    "c_in": 5.17,
+    "c_out": 11.33,
+    "ps": 0.578,
+    "b": 0.053
+  },
+  "no_drum": true,
+  "real_log": null,
+  "dt": 0.005,
+  "env_cfg": "Porcaro2026EnvCfg_ModelB (DRなし)"
+}

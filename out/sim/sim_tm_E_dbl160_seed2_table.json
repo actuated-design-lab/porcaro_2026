@@ -1,0 +1,9 @@
+{
+  "signal": "/home/actuated/my_isaaclab_projects/jetson_project/test_signals/tm_E_dbl160_seed2.csv",
+  "pmodel": "table",
+  "params": {},
+  "no_drum": true,
+  "real_log": null,
+  "dt": 0.005,
+  "env_cfg": "Porcaro2026EnvCfg_ModelB (DRなし)"
+}
