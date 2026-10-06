@@ -1,0 +1,9 @@
+{
+  "signal": "/home/actuated/my_isaaclab_projects/jetson_project/test_signals/tm_B_steps.csv",
+  "pmodel": "measured",
+  "params": {},
+  "no_drum": true,
+  "real_log": "../jetson_project/test_signals/data_tm_B_steps_1791183490.csv",
+  "dt": 0.005,
+  "env_cfg": "Porcaro2026EnvCfg_ModelB (DRなし)"
+}
