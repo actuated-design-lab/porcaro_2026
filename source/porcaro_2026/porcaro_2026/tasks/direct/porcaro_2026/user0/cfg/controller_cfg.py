@@ -33,3 +33,7 @@ class TorqueControllerCfg:
     pam_extend_gain: float = 1.0        # 伸長側の非対称係数
     pam_p_dot_scale: float = 100.0      # 向き d = tanh(clip(scale·dP/dt)/0.1) の scale
     transition_width: float = 0.0       # たるみ→張りの遷移幅（0 = 階段）
+
+    # --- 電磁弁（2値）モード。既定 False = 従来どおりの連続値（RA-L と同じ） ---
+    use_discrete_action: bool = False   # True で指令圧力を 0 / Pmax の2値にする（common/actions/discrete_torque.py）
+    discrete_threshold: float = 0.5     # 連続値の指令圧力が Pmax の何割以上で ON にするか（0〜1）
