@@ -41,6 +41,15 @@ parser.add_argument("--pam_tau_scale", type=float, default=None,
                     help="Fix PAM time-constant multiplier to this single value, "
                          "overriding pam_tau_scale_range DR sampling entirely "
                          "(e.g. 0.5 / 1.0 / 2.0 for the tau sweep).")
+# 既存の学習済みモデルから「新しいラン」として学習を始める（追加学習）。指定しなければ何も変わらない。
+# --resume と違い、別の experiment_name のフォルダにあるチェックポイントも使える
+# （例: 連続値の Model B から2値版を始める）。オプティマイザは初期化し、iteration は 0 から数える。
+parser.add_argument("--init_checkpoint", type=str, default=None,
+                    help="Initialize the policy from this checkpoint (.pt) and train as a new run "
+                         "(fresh optimizer, iteration counter reset). Observation/action shapes must match.")
+parser.add_argument("--init_action_std", type=float, default=None,
+                    help="With --init_checkpoint: reset the policy's action noise std to this value "
+                         "(a converged policy has a small std, which leaves little exploration).")
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -85,6 +94,7 @@ if version.parse(installed_version) < version.parse(RSL_RL_VERSION):
 
 import gymnasium as gym
 import os
+import math
 import torch
 from datetime import datetime
 
@@ -98,6 +108,7 @@ from isaaclab.envs import (
     ManagerBasedRLEnvCfg,
     multi_agent_to_single_agent,
 )
+from isaaclab.utils.assets import retrieve_file_path
 from isaaclab.utils.dict import print_dict
 from isaaclab.utils.io import dump_yaml
 
@@ -259,6 +270,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
         print(f"[INFO]: Loading model checkpoint from: {resume_path}")
         # load previously trained model
         runner.load(resume_path)
+    elif args_cli.init_checkpoint:
+        _init_from_checkpoint(runner, args_cli.init_checkpoint, args_cli.init_action_std)
 
     # dump the configuration into log-directory
     dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)
@@ -269,6 +282,23 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     # close the simulator
     env.close()
+
+
+def _init_from_checkpoint(runner, checkpoint: str, action_std: float | None) -> None:
+    """--init_checkpoint: 方策の重み（と観測の正規化）だけを読み込み、新しいランとして学習を始める。"""
+    path = retrieve_file_path(checkpoint)
+    print(f"[INFO]: Initializing policy from checkpoint: {path} (new run, fresh optimizer)")
+    runner.load(path, load_optimizer=False)
+    runner.current_learning_iteration = 0
+    if action_std is not None:
+        policy = runner.alg.policy
+        if hasattr(policy, "log_std"):
+            policy.log_std.data.fill_(math.log(action_std))
+        elif hasattr(policy, "std"):
+            policy.std.data.fill_(action_std)
+        else:
+            raise RuntimeError("--init_action_std: policy has neither 'std' nor 'log_std'")
+        print(f"[INFO]: Reset action noise std to {action_std}")
 
 
 if __name__ == "__main__":

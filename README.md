@@ -235,7 +235,7 @@ Variants:
 
 | Task ID | What changes |
 |---|---|
-| `Porcaro-DR-Discrete-user0` | Same as `Porcaro-DR-user0`, but the pressure command is binary (0 / Pmax, solenoid-valve style; `common/actions/discrete_torque.py`) and the grip penalty is off. Logs go to `porcaro_rslrl_*_dr_discrete/`. |
+| `Porcaro-DR-Discrete-user0` | Same as `Porcaro-DR-user0`, but the pressure command is binary (0 / Pmax, solenoid-valve style; `common/actions/discrete_torque.py`) the grip penalty is off, and `entropy_coef` is 0.01 (continuous: 0.002). Logs go to `porcaro_rslrl_*_dr_discrete/`. |
 
 ---
 
@@ -253,6 +253,20 @@ python scripts/rsl_rl/train.py --task Porcaro-DR-user0
 # user1
 python scripts/rsl_rl/train.py --task Template-Porcaro-2026-ModelB-DR-user1
 ```
+
+Start a new run from an existing checkpoint (e.g. fine-tune the binary task from a trained continuous policy).
+Observation/action shapes must match, so use the same `--agent` and `--lookahead_horizon` as the checkpoint.
+`--init_action_std` re-opens exploration, since a converged policy has a small noise std:
+
+```bash
+python scripts/rsl_rl/train.py --task Porcaro-DR-Discrete-user0 \
+  --agent rsl_rl_lstm_cfg_entry_point --lookahead_horizon 0.5 --seed 1 --headless \
+  --init_checkpoint logs/user0/rsl_rl/porcaro_rslrl_lstm_modelB_DR/<run>/model_1499.pt \
+  --init_action_std 0.5 --run_name ft_from_B_seed1
+```
+
+Unlike `--resume`, this starts a new run (fresh optimizer, iteration 0) and the checkpoint may live in any folder.
+Without `--init_checkpoint`, training is unchanged.
 
 ### Evaluation (Playing)
 
