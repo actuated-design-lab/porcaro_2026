@@ -262,7 +262,7 @@ def plot_perseed_grid(curves: pd.DataFrame, models: list[str], out_path: str | P
 
 if __name__ == "__main__":
     repo_root = Path(__file__).resolve().parents[2]
-    logs_rsl_rl_root = repo_root / "logs" / "rsl_rl"
+    logs_rsl_rl_root = repo_root / "logs" / "user0" / "rsl_rl"
     out_path = repo_root / "analysis" / "outputs" / "fig4a_learning_curves.png"
 
     runs_df = discover_all_runs(logs_rsl_rl_root)

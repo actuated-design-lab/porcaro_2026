@@ -92,7 +92,7 @@ def main() -> int:
         return 1
 
     # --- run_dir名 -> (model, seed) の対応表を discover から作る ---
-    runs = discover_all_runs(str(REPO_ROOT / "logs" / "rsl_rl"))
+    runs = discover_all_runs(str(REPO_ROOT / "logs" / "user0" / "rsl_rl"))
     tag2ms = {Path(r.run_dir).name: (r.model, r.seed) for r in runs.itertuples()}
     print(f"[info] discover: {len(tag2ms)} run を認識")
 

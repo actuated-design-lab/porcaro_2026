@@ -6,6 +6,7 @@
 対応する旧配置は2つ:
   (1) ルート直下（eval_logs*/, eval_assets/, paper_data/, models/, out/）… 2026-10-06 以前
   (2) data/<学会>/（data/ral2026/, data/jfps2026/）… 2026-10-06〜10-07 の一時的な配置
+あわせて、学習ログも logs/rsl_rl/ → logs/<user>/rsl_rl/ へ移す（2026-10-07〜、user ごとに分離）。
 git が動かすのは「追跡されているファイル」だけなので、.gitignore 対象の実データ
 （simulation_log.csv, *.onnx, hardware/ablation/validation の CSV など）は
 git pull 後も旧ディレクトリに取り残される。このスクリプトはそれを新しい場所へ移す。
@@ -14,6 +15,10 @@ git pull 後も旧ディレクトリに取り残される。このスクリプ�
 ---------------------------------------------------------------
   python data/migrate_old_layout.py            # 何が動くかを表示するだけ（既定）
   python data/migrate_old_layout.py --apply    # 実際に移動する
+  python data/migrate_old_layout.py --logs-owner user1 --apply   # 学習ログを user1 のものとして移す
+
+--logs-owner（既定 user0）: このマシンの logs/rsl_rl/ にある学習ログが誰のものか。
+  logs/rsl_rl/ に複数人のランが混ざっている場合は、先に手で分けてから実行すること。
 
 挙動
 ----
@@ -28,6 +33,7 @@ git pull 後も旧ディレクトリに取り残される。このスクリプ�
 from __future__ import annotations
 
 import argparse
+import re
 import filecmp
 import shutil
 import sys
@@ -52,6 +58,13 @@ MAPPING: list[tuple[str, str]] = [
     # (2) data/<学会>/ の一時配置
     ("data/ral2026", "data/user0/ral2026"),
     ("data/jfps2026", "data/user0/jfps2026"),
+]
+
+# 学習ログ（{owner} は --logs-owner で指定。user ごとに logs/<user>/ へ分ける）
+LOGS_MAPPING: list[tuple[str, str]] = [
+    ("logs/rsl_rl", "logs/{owner}/rsl_rl"),
+    ("logs/rsl_rl_tau_sweep", "logs/{owner}/rsl_rl_tau_sweep"),
+    ("logs/experiment_matrix_manifest.json", "logs/{owner}/experiment_matrix_manifest.json"),
 ]
 
 # 中身が空になったら消してよい親ディレクトリ
@@ -105,7 +118,12 @@ def merge_move(src: Path, dst: Path, apply: bool, stats: Stats) -> None:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--apply", action="store_true", help="実際に移動する（指定しなければ表示のみ）")
+    ap.add_argument("--logs-owner", default="user0",
+                    help="このマシンの logs/rsl_rl/ の学習ログが誰のものか（既定 user0）")
     args = ap.parse_args()
+    if not re.fullmatch(r"user\d+", args.logs_owner):
+        print(f"ERROR: --logs-owner は user0, user1, ... の形で指定すること: {args.logs_owner}")
+        return 1
 
     if not (REPO_ROOT / "data").is_dir():
         print("ERROR: data/ が無い。整理後のブランチを pull / checkout してから実行すること。")
@@ -115,7 +133,8 @@ def main() -> int:
     print(f"=== 旧配置 -> data/ 移行  [{mode}] ===\n")
 
     stats = Stats()
-    for old, new in MAPPING:
+    mapping = MAPPING + [(old, new.format(owner=args.logs_owner)) for old, new in LOGS_MAPPING]
+    for old, new in mapping:
         src, dst = REPO_ROOT / old, REPO_ROOT / new
         if not src.exists():
             continue
@@ -146,7 +165,7 @@ def main() -> int:
 
     leftovers = [
         REPO_ROOT / p
-        for p in [old for old, _ in MAPPING] + PARENTS_TO_PRUNE
+        for p in [old for old, _ in mapping] + PARENTS_TO_PRUNE
         if (REPO_ROOT / p).exists()
     ]
     if args.apply and leftovers:

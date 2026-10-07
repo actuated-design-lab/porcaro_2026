@@ -24,6 +24,7 @@ from isaaclab.managers import EventManager
 from .porcaro_2026_env_cfg import Porcaro2026EnvCfg
 from ..common.actions.base import ActionController
 from ..common.actions.torque import TorqueActionController
+from ..common.actions.discrete_torque import DiscreteTorqueActionController
 from .logging.logging_manager import LoggingManager
 from .rewards.reward import RewardManager
 from .rhythm_generator import RhythmGenerator
@@ -110,7 +111,15 @@ class Porcaro2026Env(DirectRLEnv):
 
         pam_tau_scale_range = getattr(self.cfg, "pam_tau_scale_range", (1.0, 1.0))
         
-        self.action_controller = TorqueActionController(
+        # 電磁弁（2値）モードのときだけ DiscreteTorqueActionController を使う（既定は従来の連続値）
+        controller_kwargs = {}
+        if getattr(ctrl_cfg, "use_discrete_action", False):
+            controller_cls = DiscreteTorqueActionController
+            controller_kwargs["discrete_threshold"] = getattr(ctrl_cfg, "discrete_threshold", 0.5)
+        else:
+            controller_cls = TorqueActionController
+
+        self.action_controller = controller_cls(
             dt_ctrl=dt_ctrl,
             control_mode=ctrl_cfg.control_mode,
             r=ctrl_cfg.r,
@@ -135,6 +144,7 @@ class Porcaro2026Env(DirectRLEnv):
             pam_extend_gain=getattr(ctrl_cfg, "pam_extend_gain", 1.0),
             pam_p_dot_scale=getattr(ctrl_cfg, "pam_p_dot_scale", 100.0),
             transition_width=getattr(ctrl_cfg, "transition_width", 0.0),
+            **controller_kwargs,
         )
         self.action_controller.reset(self.num_envs, self.device)
 

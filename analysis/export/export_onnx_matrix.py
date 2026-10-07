@@ -70,7 +70,7 @@ def parse_args():
 
 
 def build_jobs(models: list[str] | None) -> pd.DataFrame:
-    df = discover_all_runs(REPO_ROOT / "logs" / "rsl_rl")
+    df = discover_all_runs(REPO_ROOT / "logs" / "user0" / "rsl_rl")
     df = df[df["status"] == "completed"].copy()
     if models:
         df = df[df["model"].isin(models)]

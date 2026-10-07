@@ -1,4 +1,4 @@
-"""Evaluation driver for the 27-run tau x lookahead sweep (logs/rsl_rl_tau_sweep/).
+"""Evaluation driver for the 27-run tau x lookahead sweep (logs/user0/rsl_rl_tau_sweep/).
 
 Read-only discovery + subprocess wrapper, same safety contract as
 analysis/harness/discover.py and analysis/eval/run_eval_matrix.py: no
@@ -8,7 +8,7 @@ usage lives in the play_sim_rhythm.py / play_sim_midi.py subprocesses this
 script shells out to.
 
 Design:
-- Discovery: logs/rsl_rl_tau_sweep/porcaro_rslrl_lstm_modelB_DR/ is scanned
+- Discovery: logs/user0/rsl_rl_tau_sweep/porcaro_rslrl_lstm_modelB_DR/ is scanned
   directly (all 27 tau-sweep runs used --agent rsl_rl_lstm_cfg_entry_point)
   - run_name is NOT trusted for
   (tau, lookahead_horizon, seed) identity, only params/env.yaml
@@ -51,7 +51,7 @@ from analysis.eval.run_eval_matrix import (  # noqa: E402
     TRIAL_SEED_BASE,
 )
 
-TAU_SWEEP_LOGS_ROOT = REPO_ROOT / "logs" / "rsl_rl_tau_sweep"
+TAU_SWEEP_LOGS_ROOT = REPO_ROOT / "logs" / "user0" / "rsl_rl_tau_sweep"
 TAU_SWEEP_EXPERIMENT_DIR = "porcaro_rslrl_lstm_modelB_DR"  # all 27 runs used the LSTM agent cfg
 TAU_SWEEP_AGENT = "rsl_rl_lstm_cfg_entry_point"
 DEFAULT_EVAL_LOGS_ROOT = "data/user0/ral2026/eval/tau_sweep"
@@ -82,7 +82,7 @@ def discover_tau_runs(
     experiment_dir: str = TAU_SWEEP_EXPERIMENT_DIR,
     max_iterations_hint: int = MAX_ITERATIONS_HINT,
 ) -> pd.DataFrame:
-    """Scan logs/rsl_rl_tau_sweep/{experiment_dir}/ and classify each run.
+    """Scan logs/user0/rsl_rl_tau_sweep/{experiment_dir}/ and classify each run.
 
     Returns a DataFrame [tau, lh, seed, run_dir, timestamp, completed_iter,
     status, warnings], mirroring discover.py's discover_runs() shape.
@@ -238,7 +238,7 @@ def main() -> None:
     parser.add_argument("--dry_run", action="store_true", default=False,
                          help="Print every command that would be launched; do not execute anything.")
     parser.add_argument("--tau_sweep_root", type=str, default=str(TAU_SWEEP_LOGS_ROOT),
-                         help="Root directory passed to discover_tau_runs() (default logs/rsl_rl_tau_sweep/).")
+                         help="Root directory passed to discover_tau_runs() (default logs/user0/rsl_rl_tau_sweep/).")
     parser.add_argument("--eval_logs_root", type=str, default=DEFAULT_EVAL_LOGS_ROOT,
                          help="Output root for tau-sweep-style CSVs.")
     parser.add_argument("--manifest", type=str, default=str(DEFAULT_MANIFEST),

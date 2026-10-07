@@ -28,6 +28,9 @@ import sys
 import time
 from datetime import datetime
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import cli_args  # noqa: E402  (same directory; only uses the log-path helpers)
+
 # ==============================================================================
 # 実験条件の定義
 # ==============================================================================
@@ -88,7 +91,7 @@ def make_run_name(seed: int) -> str:
 
 def is_already_done(logs_root: str, experiment_name: str, run_name: str, max_iterations: int) -> str | None:
     """
-    logs/rsl_rl/{experiment_name}/ 配下から run_name に一致するフォルダを探し、
+    {logs_root}/{experiment_name}/（既定 logs/<user>/rsl_rl/...）配下から run_name に一致するフォルダを探し、
     最終チェックポイント(model_{max_iterations-1}.pt など)が存在するか確認する。
     見つかればそのパスを返す。見つからなければ None。
     """
@@ -156,13 +159,19 @@ def main():
                         help="1本あたりの学習イテレーション数")
     parser.add_argument("--num_envs", type=int, default=2048,
                         help="並列環境数 (train.pyに--num_envsとして渡す)")
-    parser.add_argument("--logs_root", type=str, default="logs/rsl_rl",
-                        help="ログのルートディレクトリ (完了判定に使用)")
+    parser.add_argument("--logs_root", type=str, default=None,
+                        help="ログのルートディレクトリ (完了判定に使用)。既定は logs/<タスクのuser>/rsl_rl")
     parser.add_argument("--dry_run", action="store_true",
                         help="実行はせず、実行予定のコマンド一覧だけ表示する")
-    parser.add_argument("--manifest", type=str, default="logs/experiment_matrix_manifest.json",
-                        help="実行結果を記録するJSONファイルのパス")
+    parser.add_argument("--manifest", type=str, default=None,
+                        help="実行結果を記録するJSONファイルのパス。既定は logs/<タスクのuser>/experiment_matrix_manifest.json")
     args = parser.parse_args()
+
+    # 既定の出力先は、タスクIDから判定した user ごとに分ける（train.py と同じ規則）
+    if args.logs_root is None:
+        args.logs_root = cli_args.user_logs_root(args.task)
+    if args.manifest is None:
+        args.manifest = os.path.join(os.path.dirname(args.logs_root), "experiment_matrix_manifest.json")
 
     conditions = build_conditions()
     seeds = list(range(1, args.num_seeds + 1))

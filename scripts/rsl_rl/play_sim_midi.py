@@ -182,7 +182,7 @@ def main(env_cfg, agent_cfg):
     if checkpoint_path:
         resume_path = retrieve_file_path(checkpoint_path)
     else:
-        log_root_path = os.path.abspath(os.path.join("logs", "rsl_rl", experiment_name))
+        log_root_path = os.path.abspath(os.path.join(cli_args.user_logs_root(args_cli.task), experiment_name))
         resume_path = get_checkpoint_path(log_root_path, run_dir_arg, args_cli.load_checkpoint)
 
     log_dir = os.path.dirname(resume_path)

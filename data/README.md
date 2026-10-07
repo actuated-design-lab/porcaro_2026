@@ -30,3 +30,10 @@ data/
 6. 各フォルダには README.md を置き、そのフォルダが何か・何を入れるかを書く。
 
 詳しい運用（ブランチ・共有部分の扱い）はリポジトリ直下の `README.md` の「Team Workflow」を参照。
+
+## 学習ログ（logs/）について
+
+学習ログ・チェックポイントは `data/` ではなく `logs/<user>/rsl_rl/<experiment_name>/` に出る（git 管理外）。
+`<user>` は `--task` のタスクID（`...-user0` など）から自動で決まるので、指定は要らない。
+評価に使うときは、そのチェックポイントを `--checkpoint logs/<user>/rsl_rl/...` で指定するか、
+`play*.py` に同じタスクIDを渡せば自動で探される。

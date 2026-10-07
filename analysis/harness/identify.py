@@ -95,7 +95,7 @@ def classify_tau_cell(env_y: dict) -> tuple[float, float] | None:
     """Map a tau-sweep run's env.yaml to its (pam_tau_scale, lookahead_horizon) cell.
 
     Deliberately does not use classify_model() - tau-sweep runs live under a
-    separate logs/rsl_rl_tau_sweep/ root (see train.py's --pam_tau_scale ->
+    separate logs/user0/rsl_rl_tau_sweep/ root (see train.py's --pam_tau_scale ->
     logs_root_dir redirect) precisely so they are never mistaken for A-E
     model runs; this function is the tau-sweep-only counterpart.
 

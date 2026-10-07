@@ -12,7 +12,7 @@ params/env.yaml + params/agent.yaml, not from the directory name or which of
 the two experiment_name folders a run happens to live in.
 
 Safety:
-- Only reads files under logs/rsl_rl/.../params/*.yaml (small text files) and
+- Only reads files under logs/user0/rsl_rl/.../params/*.yaml (small text files) and
   lists (never opens) *.pt checkpoint filenames to read off their iteration
   number from the filename.
 - The run directory with the most recent mtime is treated as "in progress"
@@ -215,7 +215,7 @@ def discover_all_runs(
     experiment_dirs: list[str] | None = None,
     max_iterations_hint: int = 1500,
 ) -> pd.DataFrame:
-    """Scan every known experiment_name folder under logs/rsl_rl/ and concatenate.
+    """Scan every known experiment_name folder under logs/user0/rsl_rl/ and concatenate.
 
     A missing folder (e.g. the MLP sweep hasn't produced any runs yet) is
     silently skipped rather than raising, so this is safe to call before
@@ -334,8 +334,8 @@ if __name__ == "__main__":
     import sys
 
     repo_root = Path(__file__).resolve().parents[2]
-    logs_rsl_rl_root = repo_root / "logs" / "rsl_rl"
-    manifest_path = repo_root / "logs" / "experiment_matrix_manifest.json"
+    logs_rsl_rl_root = repo_root / "logs" / "user0" / "rsl_rl"
+    manifest_path = repo_root / "logs" / "user0" / "experiment_matrix_manifest.json"
 
     df = discover_all_runs(logs_rsl_rl_root)
     pd.set_option("display.max_columns", None)

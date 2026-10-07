@@ -157,3 +157,12 @@ class Porcaro2026EnvCfg_ModelB_DR(Porcaro2026EnvCfg_ModelB):
         super().__post_init__()
         apply_domain_randomization(self)
         self.pam_tau_scale_range = (0.8, 1.2)
+
+
+# --- Model B DR + 電磁弁（2値）: 指令圧力を 0 / Pmax にするだけで、それ以外は Model B DR と同じ ---
+@configclass
+class Porcaro2026EnvCfg_ModelB_DR_Discrete(Porcaro2026EnvCfg_ModelB_DR):
+    def __post_init__(self):
+        super().__post_init__()
+        self.controller.use_discrete_action = True
+        self.controller.discrete_threshold = 0.5

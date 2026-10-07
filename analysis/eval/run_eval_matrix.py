@@ -72,7 +72,7 @@ AGENT_BY_MODEL: dict[str, str] = {
 # lookahead_horizon=0.5 / use_frame_stacking=False (observation_space=35),
 # which only matches models B and D. A/C/E were trained with different
 # lookahead_horizon / frame stacking (see analysis/harness/identify.py's
-# classify_model() and logs/rsl_rl/MODEL_MAP.md) and their checkpoints
+# classify_model() and logs/user0/rsl_rl/MODEL_MAP.md) and their checkpoints
 # therefore failed to load into the unmodified task with an observation-space
 # size mismatch until play_sim_rhythm.py/play_sim_midi.py gained the
 # --lookahead_horizon/--use_frame_stacking/--frame_stack_k overrides (mirrors
@@ -336,7 +336,7 @@ def main() -> None:
     parser.add_argument(
         "--logs_rsl_rl_root",
         type=str,
-        default=str(REPO_ROOT / "logs" / "rsl_rl"),
+        default=str(REPO_ROOT / "logs" / "user0" / "rsl_rl"),
         help="Root directory passed to discover_all_runs().",
     )
     parser.add_argument(

@@ -76,7 +76,7 @@ data/user0/ral2026/paper/hardware/hw_strikes_s4_1N.csv   同・打点ごと
 data/user0/ral2026/paper/ablation/mask_*_summary_1N.csv  マスク 各15ラン
 ```
 
-`fig4` の (a) だけ TensorBoard の event ファイル（`logs/rsl_rl/`）が要る。
+`fig4` の (a) だけ TensorBoard の event ファイル（`logs/user0/rsl_rl/`）が要る。
 展開後は `logs/` の更新日時を過去にすること（`discover.py` が最新更新のランを
 「学習中」とみなして1件落とすため）。
 
