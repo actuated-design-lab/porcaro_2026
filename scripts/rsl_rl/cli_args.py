@@ -89,3 +89,41 @@ def update_rsl_rl_cfg(agent_cfg: RslRlBaseRunnerCfg, args_cli: argparse.Namespac
         agent_cfg.neptune_project = args_cli.log_project_name
 
     return agent_cfg
+
+
+def task_user(task_name: str) -> str | None:
+    """Return the user folder ("user0", "user1", ...) a task belongs to, or None.
+
+    The user is taken from the module of the task's ``env_cfg_entry_point``
+    (``...porcaro_2026.user0.porcaro_2026_env_cfg:...``), so it works for any task
+    registered inside a ``userN/`` package. If the task is not registered yet
+    (or not a Porcaro task), it falls back to a ``-userN`` suffix in the task ID.
+    """
+    import re
+
+    task_id = task_name.split(":")[-1]
+    try:
+        import gymnasium as gym
+
+        entry = gym.spec(task_id).kwargs.get("env_cfg_entry_point", "")
+        module = entry.split(":")[0] if isinstance(entry, str) else getattr(entry, "__module__", "")
+        for part in module.split("."):
+            if re.fullmatch(r"user\d+", part):
+                return part
+    except Exception:
+        pass
+    m = re.search(r"-(user\d+)(?:-Play)?$", task_id)
+    return m.group(1) if m else None
+
+
+def user_logs_root(task_name: str, logs_subdir: str = "rsl_rl") -> str:
+    """Directory that holds the experiment folders of this task's user.
+
+    ``logs/<userN>/<logs_subdir>`` (e.g. ``logs/user0/rsl_rl``), so members never
+    share a log folder even if their agent cfgs use the same ``experiment_name``.
+    Tasks outside a ``userN/`` package keep Isaac Lab's default ``logs/<logs_subdir>``.
+    """
+    import os
+
+    user = task_user(task_name)
+    return os.path.join("logs", user, logs_subdir) if user else os.path.join("logs", logs_subdir)

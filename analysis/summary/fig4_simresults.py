@@ -74,7 +74,7 @@ def panel_learning_curves(ax) -> dict:
     from analysis.harness.discover import discover_all_runs
     from analysis.harness.tb_curves import SCALAR_TAG, load_scalar_series
 
-    runs = discover_all_runs(str(REPO_ROOT / "logs" / "rsl_rl"))
+    runs = discover_all_runs(str(REPO_ROOT / "logs" / "user0" / "rsl_rl"))
     out = {}
     for m in D.MODELS:
         series = []

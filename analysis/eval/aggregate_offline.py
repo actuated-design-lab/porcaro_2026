@@ -196,7 +196,7 @@ def trials_eval_noise_summary(eval_logs_root: Path = REPO_ROOT / "data" / "user0
     # the exact same A-E run_dirs as the main matrix).
     from analysis.harness.discover import discover_all_runs
 
-    runs_df = discover_all_runs(REPO_ROOT / "logs" / "rsl_rl")
+    runs_df = discover_all_runs(REPO_ROOT / "logs" / "user0" / "rsl_rl")
     runs_df = runs_df[runs_df["status"] == "completed"].copy()
     run_tag_to_model_seed = {Path(r.run_dir).name: (r.model, r.seed) for r in runs_df.itertuples()}
 
@@ -241,7 +241,7 @@ def mask_comparison(
             continue
         strikes["model"] = "C"
         from analysis.harness.discover import discover_all_runs
-        runs_df = discover_all_runs(REPO_ROOT / "logs" / "rsl_rl")
+        runs_df = discover_all_runs(REPO_ROOT / "logs" / "user0" / "rsl_rl")
         runs_df = runs_df[(runs_df["status"] == "completed") & (runs_df["model"] == "C")]
         run_tag_to_seed = {Path(r.run_dir).name: r.seed for r in runs_df.itertuples()}
         strikes["seed"] = strikes["run_tag"].map(run_tag_to_seed)

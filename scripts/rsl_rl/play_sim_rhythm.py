@@ -91,7 +91,7 @@ import porcaro_2026.tasks
 @hydra_task_config(args_cli.task, args_cli.agent)
 def main(env_cfg, agent_cfg):
     # 1. パス解決
-    log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
+    log_root_path = os.path.join(cli_args.user_logs_root(args_cli.task), agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
     
     if args_cli.checkpoint:

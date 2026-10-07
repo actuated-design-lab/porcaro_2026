@@ -67,7 +67,7 @@ def bpm_from_tag(tag: str):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--eval_logs", default=str(REPO_ROOT / "data" / "user0" / "ral2026" / "eval" / "tau_sweep"))
-    ap.add_argument("--logs_root", default=str(REPO_ROOT / "logs" / "rsl_rl_tau_sweep"))
+    ap.add_argument("--logs_root", default=str(REPO_ROOT / "logs" / "user0" / "rsl_rl_tau_sweep"))
     ap.add_argument("--min_strike_frac", type=float, default=MIN_STRIKE_FRAC_1N)
     ap.add_argument("--tol_ms", type=float, default=TOL_MS)
     ap.add_argument("--verify_yaml", action="store_true",

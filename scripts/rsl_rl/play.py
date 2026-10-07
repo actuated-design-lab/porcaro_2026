@@ -8,7 +8,7 @@
 """Launch Isaac Sim Simulator first."""
 
 """
-python scripts/rsl_rl/play.py   --task Template-Porcaro-Direct-ModelB --num_envs 1 --video  --checkpoint=logs/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-02-13_16-15-01/model_2700.pt
+python scripts/rsl_rl/play.py   --task Template-Porcaro-Direct-ModelB --num_envs 1 --video  --checkpoint=logs/user0/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-02-13_16-15-01/model_2700.pt
 """
 
 import argparse
@@ -101,7 +101,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
 
     # specify directory for logging experiments
-    log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
+    log_root_path = os.path.join(cli_args.user_logs_root(args_cli.task), agent_cfg.experiment_name)
     log_root_path = os.path.abspath(log_root_path)
     print(f"[INFO] Loading experiment from directory: {log_root_path}")
     if args_cli.use_pretrained_checkpoint:

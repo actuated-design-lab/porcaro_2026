@@ -3,7 +3,7 @@
 Reads only already-existing aggregation CSVs under analysis/outputs/ (all
 produced by prior offline/CPU-only passes - aggregate_offline.py /
 reaggregate_conditions.py) plus TensorBoard scalar event files under
-logs/rsl_rl/ and logs/rsl_rl_tau_sweep/ (via analysis.harness.tb_curves /
+logs/user0/rsl_rl/ and logs/user0/rsl_rl_tau_sweep/ (via analysis.harness.tb_curves /
 analysis.eval.run_eval_tau_sweep's discover_tau_runs - no isaaclab/torch
 import, CPU-only). Launches NO new training/eval jobs. Writes only PNGs
 under analysis/summary/figs/.
@@ -75,7 +75,7 @@ def savefig(fig, name: str) -> Path:
 def copy_fig4a() -> Path | None:
     """Re-embed the existing A-E learning-curve figure (analysis/harness/tb_curves.py
     output) under analysis/summary/figs/ - not regenerated, just copied, since
-    it already exists and reflects the current logs/rsl_rl/ state."""
+    it already exists and reflects the current logs/user0/rsl_rl/ state."""
     src = OUTPUTS_DIR / "fig4a_learning_curves.png"
     if not src.exists():
         print(f"[gen_figures] WARNING: {src} not found, skipping copy.")

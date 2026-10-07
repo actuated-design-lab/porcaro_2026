@@ -98,7 +98,7 @@ def dr_vs_nondr(
     # run_tag -> (model, seed) via the authoritative A-E discovery table -
     # data/user0/ral2026/eval/nondr/ re-evaluated the exact same run_dirs as the main
     # matrix, just under the non-DR task, so run_tag identity is unchanged.
-    runs_df = discover_all_runs(REPO_ROOT / "logs" / "rsl_rl")
+    runs_df = discover_all_runs(REPO_ROOT / "logs" / "user0" / "rsl_rl")
     runs_df = runs_df[runs_df["status"] == "completed"]
     run_tag_to_model_seed = {Path(r.run_dir).name: (r.model, r.seed) for r in runs_df.itertuples()}
 

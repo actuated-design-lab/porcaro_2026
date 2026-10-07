@@ -56,7 +56,7 @@ LEDGER = [
         cond="A: LSTM lh=0.1s(obs15) / B: LSTM lh=0.5s(obs35) / C: LSTM lh=1.0s(obs60) / "
              "D: MLP lh=0.5s(obs35) / E: framestack MLP k=5 lh=0.5s(obs175)",
         seeds="5 seed/model (計25 run)",
-        data="logs/rsl_rl/porcaro_rslrl_{lstm_modelB_DR,mlp_modelB_DR_lookahead5}/",
+        data="logs/user0/rsl_rl/porcaro_rslrl_{lstm_modelB_DR,mlp_modelB_DR_lookahead5}/",
         conclusion="学習報酬曲線ではB≈Cで実質差が出ない(下記図B参照)。",
     ),
     dict(
@@ -85,7 +85,7 @@ LEDGER = [
         cond="τ倍率∈{0.5,1.0,2.0} × lookahead(τ比例グリッド、3水準/τ) × seed{1,2,3}、"
              "非DR task(Time Constant Scale DR含む全DRオフ)",
         seeds="3 seed/cell",
-        data="logs/rsl_rl_tau_sweep/porcaro_rslrl_lstm_modelB_DR/",
+        data="logs/user0/rsl_rl_tau_sweep/porcaro_rslrl_lstm_modelB_DR/",
         conclusion="9セルとも学習は収束(下記図B参照)。τが大きいほど収束が遅く/ばらつきが大きい傾向。",
     ),
     dict(

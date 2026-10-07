@@ -58,7 +58,7 @@ ul.facts li { margin-bottom: 0.5rem; }
           <td>R3 Minor-1「MLP-LSTM比較はmemory機構を単離できていない」/ AE要約「memory ablationが厳密でない」→ E(framestack MLP, k=5)をfinite-history-without-recurrenceの対照として追加することで直接対応。R3 Weakness-3a「LSTM-free MLPでhistoryを見る比較が無い」も同じEが充足。ただしR3が併せて要求する model-based feedforward controller との比較は本実験群では<b>未実施(ギャップ)</b>。</td>
           <td>A: LSTM lh=0.1s(obs15) / B: LSTM lh=0.5s(obs35) / C: LSTM lh=1.0s(obs60) / D: MLP lh=0.5s(obs35) / E: framestack MLP k=5 lh=0.5s(obs175)</td>
           <td>5 seed/model (計25 run)</td>
-          <td><code>logs/rsl_rl/porcaro_rslrl_{lstm_modelB_DR,mlp_modelB_DR_lookahead5}/</code></td>
+          <td><code>logs/user0/rsl_rl/porcaro_rslrl_{lstm_modelB_DR,mlp_modelB_DR_lookahead5}/</code></td>
           <td>学習報酬曲線ではB≈Cで実質差が出ない(下記図B参照)。</td>
         </tr>
 <tr>
@@ -74,7 +74,7 @@ ul.facts li { margin-bottom: 0.5rem; }
           <td>R4「horizon選択の根拠(actuator identificationに基づくか)を早い段階で明記すべき」に直接対応 — 最適先読みがτに依存して動くことを示せば0.1/0.5/1.0sの選択が恣意的でなくPAM時定数由来であることの根拠になる。R3 Weakness-2「correlational」への追加証拠(ただし本実験もcorrelationalでありτ→最適lookaheadの因果を証明するものではない、後述)。</td>
           <td>τ倍率∈{0.5,1.0,2.0} × lookahead(τ比例グリッド、3水準/τ) × seed{1,2,3}、非DR task(Time Constant Scale DR含む全DRオフ)</td>
           <td>3 seed/cell</td>
-          <td><code>logs/rsl_rl_tau_sweep/porcaro_rslrl_lstm_modelB_DR/</code></td>
+          <td><code>logs/user0/rsl_rl_tau_sweep/porcaro_rslrl_lstm_modelB_DR/</code></td>
           <td>9セルとも学習は収束(下記図B参照)。τが大きいほど収束が遅く/ばらつきが大きい傾向。</td>
         </tr>
 <tr>

@@ -40,7 +40,9 @@ porcaro_2026/
  │   ├── user3/ ...
  │   └── migrate_old_layout.py             # One-off: move untracked data from older layouts
  ├── docs/                                 # Notes (e.g. magic-number audit for the RA-L paper)
- ├── logs/                                 # (git-ignored) Isaac Lab training logs, written by scripts/rsl_rl/train.py
+ ├── logs/                                 # (git-ignored) Training logs/checkpoints, one folder per user:
+ │   ├── user0/rsl_rl/<experiment_name>/   #   written by scripts/rsl_rl/train.py (user taken from the task ID)
+ │   └── user1/rsl_rl/ ...
  ├── scripts/                              # Execution scripts for training and inference
  │   ├── list_envs.py                      # List all registered environments
  │   ├── random_agent.py                   # Random action agent
@@ -126,8 +128,10 @@ Rules:
 6. Most data files (`*.csv`, `*.npy`, `*.onnx`, ...) are git-ignored and exist only on the lab machines.
 
 Migrating a working copy from an older layout (`eval_logs*/`, `eval_assets/`, `paper_data/`, `models/`, `out/` at the
-root, or `data/ral2026/`, `data/jfps2026/`): after pulling, run `python data/migrate_old_layout.py` to preview and
-`python data/migrate_old_layout.py --apply` to move the git-ignored data into the new locations.
+root, `data/ral2026/`, `data/jfps2026/`, or training logs in `logs/rsl_rl/`): after pulling, run
+`python data/migrate_old_layout.py` to preview and `python data/migrate_old_layout.py --apply` to move the git-ignored
+data into the new locations. Training logs are moved to `logs/user0/` by default; on a machine whose `logs/rsl_rl/`
+belongs to someone else, pass `--logs-owner user1` (etc.).
 
 ---
 
@@ -183,6 +187,7 @@ You should see a table listing all available environments, for example:
 +-----------------------------------------------+----------------------------------+
 | Template-Porcaro-2026-ModelB-user0            | ...EnvCfg_ModelB                 |
 | Template-Porcaro-2026-ModelB-DR-user0         | ...EnvCfg_ModelB_DR              |
+| Template-Porcaro-2026-ModelB-DR-Discrete-user0| ...EnvCfg_ModelB_DR_Discrete     |
 | Template-Porcaro-2026-ModelB-user1            | ...EnvCfg_ModelB                 |
 | Template-Porcaro-2026-ModelB-DR-user1         | ...EnvCfg_ModelB_DR              |
 +-----------------------------------------------+----------------------------------+
@@ -226,11 +231,20 @@ Each user has their own independent set of registered task environments. Use the
 
 > **DR** (Domain Randomization) is recommended for better sim-to-real transfer.
 
+Variants:
+
+| Task ID | What changes |
+|---|---|
+| `Template-Porcaro-2026-ModelB-DR-Discrete-user0` | Same as `ModelB-DR-user0`, but the pressure command is binary (0 / Pmax, solenoid-valve style; `common/actions/discrete_torque.py`). Logs go to `porcaro_rslrl_*_modelB_DR_discrete/`. |
+
 ---
 
 ### Training
 
-Train a policy from scratch using your own task environment:
+Train a policy from scratch using your own task environment.
+Logs and checkpoints are written to **`logs/<user>/rsl_rl/<experiment_name>/`**, where `<user>` is taken from the
+task automatically (`...-user0` → `logs/user0/`). Members therefore never share a log folder, even when their agent
+configs use the same `experiment_name`. `play*.py` look for checkpoints in the same place.
 
 ```bash
 # user0
@@ -292,7 +306,7 @@ Each member works in **their own folders**, so changes from different members ne
 | Yours (edit freely) | Shared (keep changes minimal, reviewed by `.github/CODEOWNERS`) |
 |---|---|
 | `source/.../porcaro_2026/userN/` | `source/.../porcaro_2026/common/` |
-| `data/userN/` | `scripts/`, `analysis/`, `data/common/` |
+| `data/userN/`, `logs/userN/` (automatic) | `scripts/`, `analysis/`, `data/common/` |
 | personal tools: put them in `userN/tools/` | `README.md`, `.gitignore`, `environment.yml` |
 
 Rules:

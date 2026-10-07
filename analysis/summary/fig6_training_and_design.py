@@ -12,7 +12,7 @@
    右: trial間SDとシード間SDが同オーダー（D を除く）→ trial を増やすより
    シードを増やすほうが効く。査読 R4（実機trial数）への定量的な回答になる。
 
-(a) だけ TensorBoard の event ファイル（logs/rsl_rl/）が要る。無い環境では
+(a) だけ TensorBoard の event ファイル（logs/user0/rsl_rl/）が要る。無い環境では
 --skip_curves で (b)(c) だけの図になる。展開後は logs/ の更新日時を過去にすること。
 
 Usage:
@@ -48,7 +48,7 @@ def panel_learning(ax) -> dict:
     from analysis.harness.discover import discover_all_runs
     from analysis.harness.tb_curves import SCALAR_TAG, load_scalar_series
 
-    runs = discover_all_runs(str(REPO_ROOT / "logs" / "rsl_rl"))
+    runs = discover_all_runs(str(REPO_ROOT / "logs" / "user0" / "rsl_rl"))
     out = {}
     for m in D.MODELS:
         ser = [load_scalar_series(rd, SCALAR_TAG).set_index("step")["value"]
