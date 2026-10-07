@@ -44,7 +44,9 @@ def main():
     index = 0
     # acquire all Isaac environments names
     for task_spec in gym.registry.values():
-        if "Template-" in task_spec.id:
+        # porcaro_2026 パッケージで登録されたタスクだけを表示する（タスクIDの接頭辞には依存しない）
+        entry = task_spec.kwargs.get("env_cfg_entry_point", "")
+        if isinstance(entry, str) and entry.startswith("porcaro_2026."):
             # add details to table
             table.add_row([index + 1, task_spec.id, task_spec.entry_point, task_spec.kwargs["env_cfg_entry_point"]])
             # increment count

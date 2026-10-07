@@ -138,31 +138,40 @@ def apply_domain_randomization(cfg: Porcaro2026EnvCfg):
 
 
 # =========================================================
-#  Model B (IROSで大成功したモデル) の設定クラス
+#  タスク用の設定クラス
+#  （2026-10 に改名。旧名 Porcaro2026EnvCfg_ModelB / _ModelB_DR は IROS 時代の PAM モデルの呼び名で、
+#    RA-L の Model A〜E とは別物。RA-L の A〜E は学習時の引数 --lookahead_horizon / --agent /
+#    --use_frame_stacking で切り替えており、環境の設定クラスは5つとも Porcaro2026EnvCfg_DR。
+#    投稿版のコードはタグ ral2026-submit を参照）
 # =========================================================
 
-# --- Model B (DRなし: ベースライン用) ---
+# --- DRなし（ベースライン用） ---
 @configclass
-class Porcaro2026EnvCfg_ModelB(Porcaro2026EnvCfg):
+class Porcaro2026EnvCfg_Default(Porcaro2026EnvCfg):
     def __post_init__(self):
         super().__post_init__()
         self.controller.tau = 0.09 
         self.controller.use_pressure_dependent_tau = False # 2D Mapを使用
         self.controller.pam_viscosity = 0.0 
 
-# --- Model B (DRあり: 実機デプロイ用最強モデル) ---
+# --- DRあり（実機デプロイ用。RA-L の Model A〜E はすべてこの設定） ---
 @configclass
-class Porcaro2026EnvCfg_ModelB_DR(Porcaro2026EnvCfg_ModelB):
+class Porcaro2026EnvCfg_DR(Porcaro2026EnvCfg_Default):
     def __post_init__(self):
         super().__post_init__()
         apply_domain_randomization(self)
         self.pam_tau_scale_range = (0.8, 1.2)
 
 
-# --- Model B DR + 電磁弁（2値）: 指令圧力を 0 / Pmax にするだけで、それ以外は Model B DR と同じ ---
+# --- DR + 電磁弁（2値）: 指令圧力を 0 / Pmax にする。報酬は2値向けの変更をここで上書きする ---
 @configclass
-class Porcaro2026EnvCfg_ModelB_DR_Discrete(Porcaro2026EnvCfg_ModelB_DR):
+class Porcaro2026EnvCfg_DR_Discrete(Porcaro2026EnvCfg_DR):
     def __post_init__(self):
         super().__post_init__()
         self.controller.use_discrete_action = True
         self.controller.discrete_threshold = 0.5
+
+        # 報酬の上書き（2値版だけに効く。連続値のタスクは rewards_cfg.py の既定値のまま）
+        # grip ペナルティ (G の内圧/0.6)^2 は、2値だと G を ON にしている時間にほぼ比例する罰になり、
+        # 「一瞬の握りは許容する」という2乗の意図が効かないため外す
+        self.rewards.weight_grip_penalty = 0.0

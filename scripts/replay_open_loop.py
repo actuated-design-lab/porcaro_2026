@@ -2,7 +2,7 @@
 replay_open_loop.py — 実機と同じ圧力指令をシミュレータに開ループで流し、圧力と関節角を記録する
 
 JFPS 柱③「作り直した圧力モデルをシミュレータに入れて、実機の動作を再現できるか」用。
-RA-L で使った user0 環境（Porcaro2026EnvCfg_ModelB, DR なし）をそのまま使い、
+RA-L で使った user0 環境（Porcaro2026EnvCfg_Default, DR なし）をそのまま使い、
 方策の代わりに CSV の圧力指令を行動に変換して入れる。
 
 置き場所: porcaro_2026/scripts/replay_open_loop.py
@@ -73,7 +73,7 @@ import pandas as pd           # noqa: E402
 import torch                  # noqa: E402
 
 from porcaro_2026.tasks.direct.porcaro_2026.user0.porcaro_2026_env import Porcaro2026Env        # noqa: E402
-from porcaro_2026.tasks.direct.porcaro_2026.user0.porcaro_2026_env_cfg import Porcaro2026EnvCfg_ModelB  # noqa: E402
+from porcaro_2026.tasks.direct.porcaro_2026.user0.porcaro_2026_env_cfg import Porcaro2026EnvCfg_Default  # noqa: E402
 
 PA = 0.1013  # 大気圧 [MPa]
 
@@ -226,7 +226,7 @@ def main():
     cmd = sig[["cmd_pressure_DF", "cmd_pressure_F", "cmd_pressure_G"]].values.astype(np.float32)
     n_steps = len(cmd)
 
-    cfg = Porcaro2026EnvCfg_ModelB()
+    cfg = Porcaro2026EnvCfg_Default()
     cfg.scene.num_envs = 1
     cfg.events = None                       # DR なし
     cfg.pam_tau_scale_range = (1.0, 1.0)
@@ -298,7 +298,7 @@ def main():
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     out.to_csv(args.out, index=False)
     meta = dict(signal=os.path.abspath(args.signal), pmodel=args.pmodel, params=prm, no_drum=args.no_drum,
-                real_log=args.real_log, dt=dt_phys, env_cfg="Porcaro2026EnvCfg_ModelB (DRなし)",
+                real_log=args.real_log, dt=dt_phys, env_cfg="Porcaro2026EnvCfg_Default (DRなし)",
                 ctrl=ctrl_over,
                 meas_filter=(dict(lpf_ms=args.meas_lpf_ms, play_kpa=args.meas_play_kpa) if args.pmodel == "measured" else None))
     with open(os.path.splitext(args.out)[0] + ".json", "w", encoding="utf-8") as fh:

@@ -81,7 +81,7 @@ echo "########################################################################"
 echo "# (B) non-DR re-eval of the A-E matrix (75 jobs)"
 echo "########################################################################"
 $PYTHON -u -m analysis.eval.run_eval_matrix --priority $DRY_RUN \
-    --task_override Template-Porcaro-2026-ModelB-user0 \
+    --task_override Porcaro-user0 \
     --eval_logs_root data/user0/ral2026/eval/nondr \
     --manifest data/user0/ral2026/eval/nondr/eval_matrix_manifest.json
 gate data/user0/ral2026/eval/nondr data/user0/ral2026/eval/nondr/eval_matrix_manifest.json "B-nondr"
