@@ -20,7 +20,7 @@ GPU占有時間を最小化するため。
 
 Usage:
   python scripts/rsl_rl/export_onnx.py \
-      --task Template-Porcaro-2026-ModelB-DR-user0 \
+      --task Porcaro-DR-user0 \
       --agent rsl_rl_lstm_cfg_entry_point \
       --checkpoint=logs/user0/rsl_rl/porcaro_rslrl_lstm_modelB_DR/2026-02-13_16-15-01_seed1000/model_1499.pt \
       --lookahead_horizon 0.1 \
@@ -28,7 +28,7 @@ Usage:
 
   # E（frame stacking）の場合
   python scripts/rsl_rl/export_onnx.py \
-      --task Template-Porcaro-2026-ModelB-DR-user0 \
+      --task Porcaro-DR-user0 \
       --agent rsl_rl_mlp_cfg_entry_point \
       --checkpoint=logs/user0/rsl_rl/.../model_1499.pt \
       --lookahead_horizon 0.5 --use_frame_stacking --frame_stack_k 5 \

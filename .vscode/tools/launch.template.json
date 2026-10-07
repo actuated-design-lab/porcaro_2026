@@ -13,18 +13,18 @@
             "console": "integratedTerminal",
         },
         {
-            "name": "Python: Train Template-Porcaro-2026-Direct-v0 with rsl_rl (PPO)",
+            "name": "Python: Train Porcaro-DR-user0 with rsl_rl (PPO)",
             "type": "debugpy",
             "request": "launch",
-            "args" : ["--task", "Template-Porcaro-2026-Direct-v0", "--num_envs", "4096", "--headless"],
+            "args" : ["--task", "Porcaro-DR-user0", "--num_envs", "4096", "--headless"],
             "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
             "console": "integratedTerminal",
         },
         {
-            "name": "Python: Play Template-Porcaro-2026-Direct-v0 with rsl_rl (PPO)",
+            "name": "Python: Play Porcaro-DR-user0 with rsl_rl (PPO)",
             "type": "debugpy",
             "request": "launch",
-            "args" : ["--task", "Template-Porcaro-2026-Direct-v0", "--num_envs", "32"],
+            "args" : ["--task", "Porcaro-DR-user0", "--num_envs", "32"],
             "program": "${workspaceFolder}/scripts/rsl_rl/play.py",
             "console": "integratedTerminal",
         },
@@ -40,10 +40,10 @@
             }
         },
         {
-            "name": "Docker: Train Template-Porcaro-2026-Direct-v0 with rsl_rl (PPO)",
+            "name": "Docker: Train Porcaro-DR-user0 with rsl_rl (PPO)",
             "type": "debugpy",
             "request": "launch",
-            "args" : ["--task", "Template-Porcaro-2026-Direct-v0", "--num_envs", "4096", "--headless"],
+            "args" : ["--task", "Porcaro-DR-user0", "--num_envs", "4096", "--headless"],
             "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
             "console": "integratedTerminal",
             "env": {
@@ -51,10 +51,10 @@
             },
         },
         {
-            "name": "Docker: Play Template-Porcaro-2026-Direct-v0 with rsl_rl (PPO)",
+            "name": "Docker: Play Porcaro-DR-user0 with rsl_rl (PPO)",
             "type": "debugpy",
             "request": "launch",
-            "args" : ["--task", "Template-Porcaro-2026-Direct-v0", "--num_envs", "32"],
+            "args" : ["--task", "Porcaro-DR-user0", "--num_envs", "32"],
             "program": "${workspaceFolder}/scripts/rsl_rl/play.py",
             "console": "integratedTerminal",
             "env": {

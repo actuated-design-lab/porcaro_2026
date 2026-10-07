@@ -151,7 +151,7 @@ def build_command(cond: dict, seed: int, args: argparse.Namespace) -> tuple[list
 
 def main():
     parser = argparse.ArgumentParser(description="Tier1実験の一括実行ループ")
-    parser.add_argument("--task", type=str, default="Template-Porcaro-2026-ModelB-DR-user0",
+    parser.add_argument("--task", type=str, default="Porcaro-DR-user0",
                         help="対象タスクID")
     parser.add_argument("--num_seeds", type=int, default=5,
                         help="各条件ごとのシード本数 (1..num_seeds を使用)")

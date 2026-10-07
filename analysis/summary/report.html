@@ -88,7 +88,7 @@ ul.facts li { margin-bottom: 0.5rem; }
 <tr>
           <td>非DR taskでの再eval(DR vs 非DR比較)</td>
           <td>R3/R4の特定の一文には対応しないが、AE要約全体の「claimがfully supportされていない」という懸念に対する頑健性チェックとして位置づけ(直接の指摘ではなく内部仮説検証)。検証対象仮説:「Bのlh=0.5sはDR(±20% τ)に過剰適応しており、そのsim内gapがsim-to-realギャップの一因」→ 本データで<b>棄却</b>(後述)。</td>
-          <td>A-E×5seedを非DR task(Template-Porcaro-2026-ModelB-user0)で再eval</td>
+          <td>A-E×5seedを非DR task(Porcaro-user0)で再eval</td>
           <td>5 seed/model</td>
           <td><code>data/user0/ral2026/eval/nondr/ → dr_vs_nondr_comparison.csv</code></td>
           <td>モデル×条件でΔ(非DR−DR)の符号・大きさに系統性なし(Bが他モデルより系統的に悪化するパターンは見られない) → 「BのDR過剰適応」仮説棄却。</td>

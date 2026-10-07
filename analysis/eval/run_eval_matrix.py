@@ -30,7 +30,7 @@ Design:
   docstring - each run_dir is unambiguous on its own).
 - agent entry point: A/B/C (LSTM) -> rsl_rl_lstm_cfg_entry_point,
   D/E (MLP)        -> rsl_rl_mlp_cfg_entry_point.
-- task: Template-Porcaro-2026-ModelB-DR-user0 (fixed).
+- task: Porcaro-DR-user0 (fixed).
 - BASIC = {single_4, single_8, double} x {60, 120, 160} BPM, run via
   play_sim_rhythm.py. HEAVY = {(single_8, 160), (double, 160)} get
   --heavy_trials (default R=5) trials; every other BASIC condition and every
@@ -56,7 +56,7 @@ sys.path.insert(0, str(REPO_ROOT))  # allow `python analysis/eval/run_eval_matri
 
 from analysis.harness.discover import discover_all_runs  # noqa: E402
 
-TASK_ID = "Template-Porcaro-2026-ModelB-DR-user0"
+TASK_ID = "Porcaro-DR-user0"
 CHECKPOINT_ITER = 1499
 TRIAL_SEED_BASE = 1000
 
@@ -68,7 +68,7 @@ AGENT_BY_MODEL: dict[str, str] = {
     "E": "rsl_rl_mlp_cfg_entry_point",
 }
 
-# Template-Porcaro-2026-ModelB-DR-user0's env_cfg defaults to
+# Porcaro-DR-user0's env_cfg defaults to
 # lookahead_horizon=0.5 / use_frame_stacking=False (observation_space=35),
 # which only matches models B and D. A/C/E were trained with different
 # lookahead_horizon / frame stacking (see analysis/harness/identify.py's
@@ -350,7 +350,7 @@ def main() -> None:
         type=str,
         default=None,
         help="Override TASK_ID for every --priority job (e.g. the non-DR "
-             "Template-Porcaro-2026-ModelB-user0 task, for the non-DR re-eval). "
+             "Porcaro-user0 task, for the non-DR re-eval). "
              "Only consulted with --priority; build_eval_plan() always uses TASK_ID.",
     )
     parser.add_argument(

@@ -14,14 +14,14 @@ from .rsl_rl_ppo_mlp_cfg import PPORunnerCfg as _MlpRunnerCfg
 
 @configclass
 class PPORunnerCfg(_DefaultRunnerCfg):
-    experiment_name = "porcaro_rslrl_lstm_modelB_DR_discrete"
+    experiment_name = "porcaro_rslrl_lstm_dr_discrete"
 
 
 @configclass
 class LstmPPORunnerCfg(_LstmRunnerCfg):
-    experiment_name = "porcaro_rslrl_lstm_modelB_DR_discrete"
+    experiment_name = "porcaro_rslrl_lstm_dr_discrete"
 
 
 @configclass
 class MlpPPORunnerCfg(_MlpRunnerCfg):
-    experiment_name = "porcaro_rslrl_mlp_modelB_DR_discrete"
+    experiment_name = "porcaro_rslrl_mlp_dr_discrete"

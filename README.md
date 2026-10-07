@@ -185,9 +185,9 @@ You should see a table listing all available environments, for example:
 +-----------------------------------------------+----------------------------------+
 | Task Name                                     | Config                           |
 +-----------------------------------------------+----------------------------------+
-| Template-Porcaro-2026-ModelB-user0            | ...EnvCfg_ModelB                 |
-| Template-Porcaro-2026-ModelB-DR-user0         | ...EnvCfg_ModelB_DR              |
-| Template-Porcaro-2026-ModelB-DR-Discrete-user0| ...EnvCfg_ModelB_DR_Discrete     |
+| Porcaro-user0                                 | ...EnvCfg_Default                |
+| Porcaro-DR-user0                              | ...EnvCfg_DR                     |
+| Porcaro-DR-Discrete-user0                     | ...EnvCfg_DR_Discrete            |
 | Template-Porcaro-2026-ModelB-user1            | ...EnvCfg_ModelB                 |
 | Template-Porcaro-2026-ModelB-DR-user1         | ...EnvCfg_ModelB_DR              |
 +-----------------------------------------------+----------------------------------+
@@ -226,7 +226,7 @@ Each user has their own independent set of registered task environments. Use the
 
 | User  | Task ID (without DR)                      | Task ID (with DR, recommended)               |
 |-------|-------------------------------------------|----------------------------------------------|
-| user0 | `Template-Porcaro-2026-ModelB-user0`      | `Template-Porcaro-2026-ModelB-DR-user0`      |
+| user0 | `Porcaro-user0`      | `Porcaro-DR-user0`      |
 | user1 | `Template-Porcaro-2026-ModelB-user1`      | `Template-Porcaro-2026-ModelB-DR-user1`      |
 
 > **DR** (Domain Randomization) is recommended for better sim-to-real transfer.
@@ -235,7 +235,7 @@ Variants:
 
 | Task ID | What changes |
 |---|---|
-| `Template-Porcaro-2026-ModelB-DR-Discrete-user0` | Same as `ModelB-DR-user0`, but the pressure command is binary (0 / Pmax, solenoid-valve style; `common/actions/discrete_torque.py`). Logs go to `porcaro_rslrl_*_modelB_DR_discrete/`. |
+| `Porcaro-DR-Discrete-user0` | Same as `Porcaro-DR-user0`, but the pressure command is binary (0 / Pmax, solenoid-valve style; `common/actions/discrete_torque.py`) and the grip penalty is off. Logs go to `porcaro_rslrl_*_dr_discrete/`. |
 
 ---
 
@@ -248,7 +248,7 @@ configs use the same `experiment_name`. `play*.py` look for checkpoints in the s
 
 ```bash
 # user0
-python scripts/rsl_rl/train.py --task Template-Porcaro-2026-ModelB-DR-user0
+python scripts/rsl_rl/train.py --task Porcaro-DR-user0
 
 # user1
 python scripts/rsl_rl/train.py --task Template-Porcaro-2026-ModelB-DR-user1
@@ -260,16 +260,16 @@ Watch the trained agent perform in the simulation GUI:
 
 ```bash
 # user0
-python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user0
+python scripts/rsl_rl/play.py --task Porcaro-DR-user0
 
 # LSTM
-python scripts/rsl_rl/train.py   --task Template-Porcaro-2026-ModelB-DR-user0   --agent rsl_rl_lstm_cfg_entry_point  --seed 1   --lookahead_horizon 0.5 --experiment_name porcaro_lstm_lookahead05   --run_name seed1   --headless
+python scripts/rsl_rl/train.py   --task Porcaro-DR-user0   --agent rsl_rl_lstm_cfg_entry_point  --seed 1   --lookahead_horizon 0.5 --experiment_name porcaro_lstm_lookahead05   --run_name seed1   --headless
 
 # MLP
-python scripts/rsl_rl/train.py   --task Template-Porcaro-2026-ModelB-DR-user0   --agent rsl_rl_mlp_cfg_entry_point  --seed 1   --lookahead_horizon 0.5 --experiment_name porcaro_mlp_lookahead01   --run_name seed1   --headless
+python scripts/rsl_rl/train.py   --task Porcaro-DR-user0   --agent rsl_rl_mlp_cfg_entry_point  --seed 1   --lookahead_horizon 0.5 --experiment_name porcaro_mlp_lookahead01   --run_name seed1   --headless
 
 # MLP frame stacking
-python scripts/rsl_rl/train.py --task Template-Porcaro-2026-ModelB-DR-user0 \
+python scripts/rsl_rl/train.py --task Porcaro-DR-user0 \
   --agent rsl_rl_mlp_cfg_entry_point \
   --seed 1 \
   --use_frame_stacking --frame_stack_k 5 \
@@ -291,7 +291,7 @@ python scripts/rsl_rl/play.py --task Template-Porcaro-2026-ModelB-DR-user1
 To add a new user (e.g., `user3`):
 
 1. Copy an existing user directory (e.g. `user0/`) and rename it to `user3/`.
-2. Edit `user3/__init__.py` to register new task IDs (e.g., `Template-Porcaro-2026-ModelB-user3`).
+2. Edit `user3/__init__.py` to register new task IDs as `Porcaro-<variant>-user3` (e.g., `Porcaro-DR-user3`). No `Template-` prefix is needed: `scripts/list_envs.py` lists every task registered by the `porcaro_2026` package.
 3. Verify with `python scripts/list_envs.py`.
 
 The parent `__init__.py` imports every `user*/` package automatically, so it does not need to be edited.

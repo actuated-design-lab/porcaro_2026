@@ -107,7 +107,7 @@ LEDGER = [
             "検証対象仮説:「Bのlh=0.5sはDR(±20% τ)に過剰適応しており、そのsim内gapが"
             "sim-to-realギャップの一因」→ 本データで<b>棄却</b>(後述)。"
         ),
-        cond="A-E×5seedを非DR task(Template-Porcaro-2026-ModelB-user0)で再eval",
+        cond="A-E×5seedを非DR task(Porcaro-user0)で再eval",
         seeds="5 seed/model",
         data="data/user0/ral2026/eval/nondr/ → dr_vs_nondr_comparison.csv",
         conclusion="モデル×条件でΔ(非DR−DR)の符号・大きさに系統性なし(Bが他モデルより"
