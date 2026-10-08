@@ -11,6 +11,9 @@ RA-L で使った user0 環境（Porcaro2026EnvCfg_Default, DR なし）をそ�
   table    : 今のシミュレータ（始点圧×指令圧の 2 次元テーブル, pneumatic.py）
   lag      : 対称な一次遅れ＋むだ時間（9/29–30 のエコー付きデータで同定）
   orifice  : lag に、給気・排気のオリフィス流量の上限を足したもの（同上）
+  shaped   : orifice の前段で、指令の小さく速い振動を実測の振幅比マップで縮める（ITV のしきい値・現象論。scripts/itv_models.py）
+  pilot    : パイロット段（積分）＋重なりを持つ主弁の2状態モデル（ITV のしきい値・物理寄り。scripts/itv_models.py）
+  pilot_leak : pilot の主弁が重なりの中でも少し漏れるようにしたもの（小振幅の削りすぎを修正。同上）
   measured : 実機で測った圧力をそのまま入れる（--real_log 必須）。
              「圧力→角度」だけを比べ、機構側（力マップ・摩擦・たるみ）の誤差を切り分ける
              実測圧力は移動平均（--meas_lpf_ms, 既定 50 ms）と遊び（--meas_play_kpa, 既定 ±10 kPa）を
@@ -48,10 +51,11 @@ from isaaclab.app import AppLauncher
 
 p = argparse.ArgumentParser(description="開ループ再生（圧力指令 → シミュレータ）")
 p.add_argument("--signal", required=True)
-p.add_argument("--pmodel", choices=["table", "lag", "orifice", "measured"], default="table")
+p.add_argument("--pmodel", choices=["table", "lag", "orifice", "shaped", "pilot", "pilot_leak", "measured"], default="table")
 p.add_argument("--real_log", default=None)
 p.add_argument("--params", default=None,
-               help="lag/orifice のパラメータを JSON で上書き（例: '{\"tau\":0.09,\"L\":0.045}'）")
+               help="lag/orifice/shaped/pilot/pilot_leak のパラメータを JSON で上書き（例: '{\"tau\":0.09,\"L\":0.045}'）。"
+                    "shaped/pilot/pilot_leak の既定値は scripts/itv_models.py の DEFAULTS")
 p.add_argument("--no_drum", action="store_true", help="打面を横へ 2 m 退避（打面なしの実機試験と揃える）")
 p.add_argument("--ctrl", default=None,
                help="機械側（張力・関節）の設定を JSON で上書き。cfg.controller の項目名で指定。"
@@ -73,6 +77,9 @@ import pandas as pd           # noqa: E402
 import torch                  # noqa: E402
 
 from porcaro_2026.tasks.direct.porcaro_2026.user0.porcaro_2026_env import Porcaro2026Env        # noqa: E402
+import sys as _sys                                                                              # noqa: E402
+_sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import itv_models                                                                               # noqa: E402
 from porcaro_2026.tasks.direct.porcaro_2026.user0.porcaro_2026_env_cfg import Porcaro2026EnvCfg_Default  # noqa: E402
 
 PA = 0.1013  # 大気圧 [MPa]
@@ -257,6 +264,9 @@ def main():
     elif args.pmodel == "orifice":
         ctrl.ch_DF, ctrl.ch_F, ctrl.ch_G = (OrificeChannel(dt_phys, prm["tau"], prm["L"], prm["c_in"], prm["c_out"],
                                                            prm["ps"], prm["b"], Pmax) for _ in range(3))
+    elif args.pmodel in ("shaped", "pilot", "pilot_leak"):
+        ctrl.ch_DF, ctrl.ch_F, ctrl.ch_G = itv_models.make_channels(args.pmodel, dt_phys, Pmax=Pmax, **prm)
+        prm = itv_models.resolved_params(args.pmodel, **prm)
     elif args.pmodel == "measured":
         if not args.real_log:
             raise SystemExit("--pmodel measured には --real_log が必要です")
