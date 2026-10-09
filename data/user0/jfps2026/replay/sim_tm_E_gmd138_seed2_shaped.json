@@ -1,0 +1,22 @@
+{
+  "signal": "/home/actuated/my_isaaclab_projects/jetson_project/test_signals/tm_E_gmd138_seed2.csv",
+  "pmodel": "shaped",
+  "params": {
+    "tau": 0.0833,
+    "L": 0.045,
+    "c_in": 4.8542,
+    "c_out": 9.962,
+    "ps": 0.5776,
+    "b": 0.1323,
+    "tc": 0.6,
+    "W": 0.6,
+    "hk": 0.2,
+    "h0": 0.003
+  },
+  "no_drum": true,
+  "real_log": null,
+  "dt": 0.005,
+  "env_cfg": "Porcaro2026EnvCfg_Default (DRなし)",
+  "ctrl": {},
+  "meas_filter": null
+}

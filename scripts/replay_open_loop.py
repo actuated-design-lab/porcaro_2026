@@ -28,7 +28,7 @@ RA-L で使った user0 環境（Porcaro2026EnvCfg_Default, DR なし）をそ�
   --signal  test_signals/tm_*.csv（time, cmd_pressure_DF, cmd_pressure_F, cmd_pressure_G, 50 Hz）
   --real_log  measured モードのときの実機ログ（run_signal_playback.py の出力）
               実機ログは DF/F の圧力列が入れ替わっている（2026/9/29 判明）ので、ここで戻す。
-              時刻は flag 列（MicroLabBox が受け取った DF 指令のエコー）で指令に合わせる。
+              時刻は flag 列（MicroLabBox が受け取った DF 指令のエコー）で指令に合わせる（scripts/real_log.py）。
 
 出力（--out, 200 Hz, 物理ステップごと）:
   time, P_cmd_DF/F/G, P_out_DF/F/G, wrist_angle_deg, grip_angle_deg, force_N
@@ -80,6 +80,7 @@ from porcaro_2026.tasks.direct.porcaro_2026.user0.porcaro_2026_env import Porcar
 import sys as _sys                                                                              # noqa: E402
 _sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import itv_models                                                                               # noqa: E402
+from real_log import load_real_aligned  # 実機ログの読み込みと時刻合わせ（analysis/eval/compare_replay.py と共通）  # noqa: E402
 from porcaro_2026.tasks.direct.porcaro_2026.user0.porcaro_2026_env_cfg import Porcaro2026EnvCfg_Default  # noqa: E402
 
 PA = 0.1013  # 大気圧 [MPa]
@@ -197,34 +198,6 @@ def play_operator(x, half_width):
     for i in range(1, len(x)):
         y[i] = min(max(y[i - 1], x[i] - half_width), x[i] + half_width)
     return y
-
-
-def load_real_aligned(path, cmd_50hz, dt):
-    """実機ログを、エコー（flag）で指令の時間軸に合わせ、dt 刻みの DF/F/G 圧力列にして返す"""
-    d = pd.read_csv(path)
-    P = np.stack([d["meas_pres_F"].values, d["meas_pres_DF"].values, d["meas_pres_G"].values], 1)  # 入れ替わりを戻す
-    flag = np.nan_to_num(d["flag"].values.astype(float))
-    t_real = np.arange(len(d)) * 0.005
-    t_cmd = np.arange(len(cmd_50hz)) * 0.02
-    # 指令DF（50 Hz, ZOH）を 200 Hz に展開
-    cmd_df = cmd_50hz[np.clip((t_real / 0.02).astype(int), 0, len(cmd_50hz) - 1), 0]
-    best = (1e9, 0)
-    for lag in range(-100, 400):                    # 実機ログ上で flag が指令より何行ずれているか
-        if lag >= 0:
-            a = cmd_df[: len(cmd_df) - lag]; b = flag[lag: lag + len(a)]
-        else:
-            b = flag[: len(flag) + lag]; a = cmd_df[-lag: -lag + len(b)]
-        n = min(len(a), len(b))
-        if n < 100:
-            continue
-        e = np.mean((a[:n] - b[:n]) ** 2)
-        if e < best[0]:
-            best = (e, lag)
-    lag = best[1]
-    print(f"[real] エコーで合わせたずれ: {lag * 5} ms（flag が指令に一致する位置）")
-    t_sim = np.arange(int(round(t_cmd[-1] / dt)) + 1) * dt
-    out = np.stack([np.interp(t_sim + lag * 0.005, t_real, P[:, k]) for k in range(3)], 1)
-    return out
 
 
 # =============================================================================

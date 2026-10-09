@@ -1,0 +1,23 @@
+{
+  "signal": "/home/actuated/my_isaaclab_projects/jetson_project/test_signals/tm_D_antagonist.csv",
+  "pmodel": "pilot_leak",
+  "params": {
+    "L": 0.02138,
+    "ki": 10.924,
+    "kpp": 0.0,
+    "d": 0.02409,
+    "km": 38.764,
+    "km_dn": 41.149,
+    "kl": 5.2285,
+    "c_in": 4.1407,
+    "c_out": 44.465,
+    "ps": 0.57475,
+    "b": 0.05
+  },
+  "no_drum": true,
+  "real_log": null,
+  "dt": 0.005,
+  "env_cfg": "Porcaro2026EnvCfg_Default (DRなし)",
+  "ctrl": {},
+  "meas_filter": null
+}

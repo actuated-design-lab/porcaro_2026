@@ -11,3 +11,15 @@
     - `pilot_leak`：モデルB＋漏れ。重なりの中でも主弁が少し漏れる
     - `orificeV2`：`--pmodel orifice` を shaped の土台と同じ O パラメータで回したもの（shaped との差がしきい値の効果だけになる比較の基準）。
       `--params '{"tau":0.0833,"L":0.045,"c_in":4.8542,"c_out":9.962,"ps":0.5776,"b":0.1323}'`
+  - 10/9 追加：
+    - `measuredV2`：`--pmodel measured` を今の既定（実測圧力に 50 ms の移動平均＋±10 kPa の遊び, 10/6 追加）で回し直したもの。
+      `measured` は 10/6 のフィルタ追加前のスクリプトで作ったもので、実測圧力を生のまま入れている（json に `meas_filter` がない。生だと圧力ノイズでヒステリシスの向きが毎ステップ反転し、sim のヒステリシスが実質消える）
+
+## compare/ — 実機との比較（`analysis/eval/compare_replay.py`）
+
+`python analysis/eval/compare_replay.py` で作り直せる（実機ログは `../jetson_project/test_signals/` をパスで参照。別の場所なら `--jetson`）。
+- `summary.md`：動作 × 圧力モデルの表（角度の RMSE・平均ずれ・平均ずれを引いた RMSE・相互相関の遅れ、圧力の NRMSE）
+- `metrics.csv`：同じ指標の全部（1 行 = 動作 × 圧力モデル）
+- `wire_screen.csv`：ワイヤー外れの洗い出し（実機の角度の跳び、実機だけ張り付いて measured の sim が動いた区間）。除外はしていない
+- `angles_tm_C_sine.png`, `angles_tm_C_sine_zoom.png`, `angles_tm_E_dbl160_seed2.png`：角度波形（実機と measured / measuredV2 / orificeV2 / shaped / pilot_leak）
+- `overview_measured.png`：全動作の実機と measuredV2（なければ measured）
