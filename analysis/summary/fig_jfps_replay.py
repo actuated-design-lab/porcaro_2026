@@ -3,7 +3,9 @@
 入力: data/user0/jfps2026/replay/compare/summary.md（analysis/eval/compare_replay.py の出力。git 管理下）の
       「wrist：RMSE [deg]」と「圧力 DF：NRMSE [%]」の表
 並べるもの: (a) DF 圧力の NRMSE、(b) 手首角の RMSE。
-           従来（table）／流量上限（orificeV2）／流量上限＋しきい値（shaped）／実測圧力（measured。角度の上限）
+           従来（table）／流量上限（orificeV2）／流量上限＋しきい値（shaped）／実測圧力（measuredV2。角度の上限）
+           上限に measuredV2（平滑化＋遊び）を使うのは、生の measured では圧力のノイズで sim のヒステリシス力の向きが
+           毎ステップ反転し、ヒステリシスが実質消えるため（docs/hysteresis_play_20261011.md）
 動作: gmd138 の2本は元圧が下がっていたので除く（前刷の方針）
 
 使い方: python analysis/summary/fig_jfps_replay.py
@@ -24,7 +26,7 @@ CMP = os.path.join(ROOT, "data", "user0", "jfps2026", "replay", "compare")
 MOTIONS = [("tm_A_quasistatic", "Quasi-static"), ("tm_B_steps", "Steps"), ("tm_C_sine", "Sine"),
            ("tm_D_antagonist", "Antagonist"), ("tm_E_dbl160_seed2", "Striking 1"), ("tm_E_dbl160_seed3", "Striking 2")]
 MODELS = [("table", "Table model (T)", "#b9b7b0"), ("orificeV2", "Lag + flow limit (O)", "#4a5568"),
-          ("shaped", "O + threshold", "#c2410c"), ("measured", "Measured pressure", "#2563eb")]
+          ("shaped", "O + threshold", "#c2410c"), ("measuredV2", "Measured pressure", "#2563eb")]
 
 
 def read_table(md: str, heading: str) -> dict[str, dict[str, float]]:
