@@ -131,10 +131,10 @@ $$
 - 条件：relay（今）＋ play の $w \in \{10, 20, 40\}$ kPa × $c_P \in \{15, 7.5\}$ N/MPa、参照に relay＋measured_v2 → 計 8 本
 - `python analysis/eval/run_hys_sweep.py --stage 1` → `python analysis/eval/hys_loops.py`
 - **選び方**：ループの横幅 ΔP@θ と縦幅 Δθ@P が実機（80/53 kPa、9.4/4.0°）に近く、tm_A の手首角 RMSE が小さいもの
-- 境界（$w$ = 10 か 40、$c_P$ = 7.5）が選ばれたら、外側に 1 段広げて追加（`--motions tm_A_quasistatic` で同じ形）
+- 境界（$w$ = 10 か 40、$c_P$ = 7.5）が選ばれたら、外側に 1 段広げて追加（例 `--stage 1 --play_ws 0.005 0.08 --play_cps 15 7.5 3.75`。既にある条件は飛ばす）
 
 ### Stage 2：検証（他の動作、約 50 分）
-- `python analysis/eval/run_hys_sweep.py --stage 2 --play_w <選んだ w> --play_cp <選んだ cP>`
+- `python analysis/eval/run_hys_sweep.py --stage 2 --play_w <選んだ w> --play_cp <選んだ cP>`（2要素も試すなら `--play_ws2 0.01 0.04`）
 - 動作：tm_B〜E（gmd138 は元圧低下で除外）。圧力：`measured_raw` と `orificeV2`。ヒステリシス：relay と play → 計 20 本
 - `python analysis/eval/hys_loops.py --fig play_w<w>_cp<cP>`
 - **見ること**
