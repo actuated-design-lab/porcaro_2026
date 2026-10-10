@@ -144,6 +144,9 @@ class Porcaro2026Env(DirectRLEnv):
             pam_extend_gain=getattr(ctrl_cfg, "pam_extend_gain", 1.0),
             pam_p_dot_scale=getattr(ctrl_cfg, "pam_p_dot_scale", 100.0),
             transition_width=getattr(ctrl_cfg, "transition_width", 0.0),
+            pam_hys_mode=getattr(ctrl_cfg, "pam_hys_mode", "relay"),
+            pam_hys_play_widths=getattr(ctrl_cfg, "pam_hys_play_widths", (0.02,)),
+            pam_hys_play_weights=getattr(ctrl_cfg, "pam_hys_play_weights", None),
             **controller_kwargs,
         )
         self.action_controller.reset(self.num_envs, self.device)

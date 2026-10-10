@@ -10,6 +10,9 @@ from .pam import (
     calculate_absolute_contraction,
     apply_model_a_force,
     calculate_simple_latched_friction,
+    calculate_play_friction,
+    play_direction,
+    play_operator_update,
 )
 from ..cfg.actuator_cfg import PamGeometricCfg
 
@@ -38,6 +41,9 @@ class TorqueActionController(ActionController):
                  pam_contract_gain: float = 1.5,
                  pam_extend_gain: float = 1.0,
                  pam_tau_scale_range: tuple[float, float] = (1.0, 1.0),
+                 pam_hys_mode: str = "relay",
+                 pam_hys_play_widths: tuple[float, ...] = (0.02,),
+                 pam_hys_play_weights: tuple[float, ...] | None = None,
                  ):
 
         self.dt_ctrl = float(dt_ctrl)
@@ -74,6 +80,23 @@ class TorqueActionController(ActionController):
         self.pam_contract_gain = float(pam_contract_gain)
         self.pam_extend_gain = float(pam_extend_gain)
         self.pam_tau_scale_range = pam_tau_scale_range
+
+        # ヒステリシス力の向きの決め方
+        #   "relay"（既定・RA-L まで）: 圧力の変化率 dP/dt の符号で即座に切り替える（calculate_simple_latched_friction）
+        #   "play"                    : 圧力の遊び作用素で決める。幅 w_i [MPa] 以上戻ったときに連続に切り替わる（速さに依らない）
+        if pam_hys_mode not in ("relay", "play"):
+            raise ValueError(f"pam_hys_mode は 'relay' か 'play': {pam_hys_mode}")
+        self.pam_hys_mode = pam_hys_mode
+        w = [float(v) for v in (pam_hys_play_widths if isinstance(pam_hys_play_widths, (list, tuple)) else [pam_hys_play_widths])]
+        if any(v <= 0 for v in w):
+            raise ValueError(f"pam_hys_play_widths は正の値: {w}")
+        a = [float(v) for v in pam_hys_play_weights] if pam_hys_play_weights is not None else [1.0 / len(w)] * len(w)
+        if len(a) != len(w) or abs(sum(a) - 1.0) > 1e-6:
+            raise ValueError(f"pam_hys_play_weights は widths と同じ長さで合計 1: {a}")
+        self._play_widths_list, self._play_weights_list = w, a
+        self.play_widths = self.play_weights = None     # reset() でデバイスに載せる
+        self.play_state = None                           # (n_envs, 3, K)
+        self.play_needs_init = None                      # (n_envs,) True の環境は次の apply で z = P に揃える
 
         # Force Mapの読み込み (省略なし)
         print("-" * 60)
@@ -152,6 +175,11 @@ class TorqueActionController(ActionController):
         self._last_telemetry = None
         self.prev_P_stack = None
         self.prev_direction_stack = torch.zeros((n_envs, 3), device=device, dtype=torch.float32)
+        K = len(self._play_widths_list)
+        self.play_widths = torch.tensor(self._play_widths_list, device=device, dtype=torch.float32)
+        self.play_weights = torch.tensor(self._play_weights_list, device=device, dtype=torch.float32)
+        self.play_state = torch.zeros((n_envs, 3, K), device=device, dtype=torch.float32)
+        self.play_needs_init = torch.ones(n_envs, device=device, dtype=torch.bool)
 
     def reset_idx(self, env_ids: torch.Tensor):
         self.ch_DF.reset_idx(env_ids)
@@ -161,6 +189,8 @@ class TorqueActionController(ActionController):
             self.prev_P_stack[env_ids] = 0.0
         if self.prev_direction_stack is not None:
             self.prev_direction_stack[env_ids] = 0.0
+        if self.play_needs_init is not None:
+            self.play_needs_init[env_ids] = True
 
     def compute_pressure(self, actions: torch.Tensor) -> torch.Tensor:
         # 変更なし
@@ -284,34 +314,51 @@ class TorqueActionController(ActionController):
             h_dot_F  = calculate_h_dot(dq_wrist_rad, self.r, SIGN_F,  self.L0_sim)
             h_dot_G  = calculate_h_dot(dq_grip_rad,  self.r, SIGN_G,  self.L0_sim)
 
-            # 4. 摩擦力 (変更なし)
-            fric_DF, new_dir_DF = calculate_simple_latched_friction(
-                h_dot_DF, P_dot_stack[:, 0], P_DF, 
-                self.prev_direction_stack[:, 0],
-                self.pam_viscosity, self.pam_hys_coef_p, self.pam_hys_const,
-                p_dot_scale=self.pam_p_dot_scale,
-                contract_gain=self.pam_contract_gain,
-                extend_gain=self.pam_extend_gain
-            )
-            fric_F, new_dir_F = calculate_simple_latched_friction(
-                h_dot_F, P_dot_stack[:, 1], P_F, 
-                self.prev_direction_stack[:, 1],
-                self.pam_viscosity, self.pam_hys_coef_p, self.pam_hys_const,
-                p_dot_scale=self.pam_p_dot_scale,
-                contract_gain=self.pam_contract_gain,
-                extend_gain=self.pam_extend_gain
-            )
-            fric_G, new_dir_G = calculate_simple_latched_friction(
-                h_dot_G, P_dot_stack[:, 2], P_G, 
-                self.prev_direction_stack[:, 2],
-                self.pam_viscosity, self.pam_hys_coef_p, self.pam_hys_const,
-                p_dot_scale=self.pam_p_dot_scale,
-                contract_gain=self.pam_contract_gain,
-                extend_gain=self.pam_extend_gain
-            )
+            # 4. 摩擦力（ヒステリシス）
+            if self.pam_hys_mode == "play":
+                P_now = torch.stack([P_DF, P_F, P_G], dim=1)                       # (n_envs, 3)
+                if self.play_needs_init is not None and bool(self.play_needs_init.any()):
+                    m = self.play_needs_init
+                    self.play_state[m] = P_now[m].unsqueeze(-1).expand(-1, -1, self.play_state.shape[-1])
+                    self.play_needs_init[m] = False
+                self.play_state = play_operator_update(self.play_state, P_now, self.play_widths)
+                d = play_direction(self.play_state, P_now, self.play_widths, self.play_weights)
+                fric_DF = calculate_play_friction(h_dot_DF, d[:, 0], P_DF, self.pam_viscosity, self.pam_hys_coef_p,
+                                                  self.pam_hys_const, self.pam_contract_gain, self.pam_extend_gain)
+                fric_F = calculate_play_friction(h_dot_F, d[:, 1], P_F, self.pam_viscosity, self.pam_hys_coef_p,
+                                                 self.pam_hys_const, self.pam_contract_gain, self.pam_extend_gain)
+                fric_G = calculate_play_friction(h_dot_G, d[:, 2], P_G, self.pam_viscosity, self.pam_hys_coef_p,
+                                                 self.pam_hys_const, self.pam_contract_gain, self.pam_extend_gain)
+                self.prev_direction_stack = d
+            else:
+                # 4. 摩擦力 (変更なし)
+                fric_DF, new_dir_DF = calculate_simple_latched_friction(
+                    h_dot_DF, P_dot_stack[:, 0], P_DF, 
+                    self.prev_direction_stack[:, 0],
+                    self.pam_viscosity, self.pam_hys_coef_p, self.pam_hys_const,
+                    p_dot_scale=self.pam_p_dot_scale,
+                    contract_gain=self.pam_contract_gain,
+                    extend_gain=self.pam_extend_gain
+                )
+                fric_F, new_dir_F = calculate_simple_latched_friction(
+                    h_dot_F, P_dot_stack[:, 1], P_F, 
+                    self.prev_direction_stack[:, 1],
+                    self.pam_viscosity, self.pam_hys_coef_p, self.pam_hys_const,
+                    p_dot_scale=self.pam_p_dot_scale,
+                    contract_gain=self.pam_contract_gain,
+                    extend_gain=self.pam_extend_gain
+                )
+                fric_G, new_dir_G = calculate_simple_latched_friction(
+                    h_dot_G, P_dot_stack[:, 2], P_G, 
+                    self.prev_direction_stack[:, 2],
+                    self.pam_viscosity, self.pam_hys_coef_p, self.pam_hys_const,
+                    p_dot_scale=self.pam_p_dot_scale,
+                    contract_gain=self.pam_contract_gain,
+                    extend_gain=self.pam_extend_gain
+                )
             
-            # 方向の更新
-            self.prev_direction_stack = torch.stack([new_dir_DF, new_dir_F, new_dir_G], dim=1)
+                # 方向の更新
+                self.prev_direction_stack = torch.stack([new_dir_DF, new_dir_F, new_dir_G], dim=1)
 
             # 5. 合力計算
             F_DF_total_raw = F_DF_static + fric_DF

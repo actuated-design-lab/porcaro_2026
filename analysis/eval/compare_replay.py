@@ -3,7 +3,8 @@ compare_replay.py — 開ループ再生（scripts/replay_open_loop.py）の sim
 
 入力:
   data/user0/jfps2026/replay/sim_<動作>_<圧力モデル>.csv（200 Hz）
-  ../jetson_project/test_signals/<動作>.csv（指令, 50 Hz）と data_<動作>_<数字>.csv（実機ログ, 200 Hz）
+  ../jetson_project/signals/<動作>.csv（指令, 50 Hz）と data/*/*/playback_*/data_<動作>_<数字>.csv（実機ログ, 200 Hz）
+  （jetson_project の旧配置 test_signals/ にも対応）
   実機ログは scripts/real_log.py で読む（DF/F 圧力列の入れ替わりを戻し、flag のエコーで指令に時刻を合わせる。
   replay_open_loop.py の measured モードと同じ処理）
 
@@ -61,23 +62,18 @@ INK, INK2, GRID = "#0b0b0b", "#52514e", "#e4e3df"
 
 
 def real_log_path(jetson, motion, replay_dir):
-    """measured の json に書かれた実機ログを優先し、なければ data_<動作>_<数字>.csv を探す（_drum は除く）"""
+    """measured の json に書かれた実機ログを優先し、なければ data_<動作>_<数字>.csv を探す（_drum は除く）。
+    jetson_project の v4 配置（data/<user>/<venue>/playback_*/）と旧配置（test_signals/）の両方に対応"""
     meta = os.path.join(replay_dir, f"sim_{motion}_measured.json")
-    if os.path.exists(meta):
-        p = json.load(open(meta)).get("real_log")
-        if p:
-            p = os.path.join(jetson, "test_signals", os.path.basename(p))
-            if os.path.exists(p):
-                return p
-    c = [f for f in glob.glob(os.path.join(jetson, "test_signals", f"data_{motion}_*.csv"))
-         if os.path.basename(f)[len(f"data_{motion}_"):-4].isdigit()]
-    if len(c) != 1:
-        raise SystemExit(f"{motion}: 実機ログが {len(c)} 本見つかった: {c}")
-    return c[0]
+    hint = json.load(open(meta)).get("real_log") if os.path.exists(meta) else None
+    try:
+        return RL.find_real_log(jetson, motion, hint)
+    except FileNotFoundError as e:
+        raise SystemExit(str(e))
 
 
 def load_real(jetson, motion, replay_dir):
-    cmd = pd.read_csv(os.path.join(jetson, "test_signals", f"{motion}.csv"))[
+    cmd = pd.read_csv(RL.jetson_signal_path(jetson, motion))[
         ["cmd_pressure_DF", "cmd_pressure_F", "cmd_pressure_G"]].values
     path = real_log_path(jetson, motion, replay_dir)
     A, lag = RL.align_real_log(pd.read_csv(path), cmd, DT,

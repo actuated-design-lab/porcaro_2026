@@ -160,6 +160,33 @@ def calculate_simple_latched_friction(h_dot, p_dot, pressure, prev_direction, vi
     f_hysteresis = -1.0 * (friction_magnitude * asym_scale) * final_direction
     return f_viscous + f_hysteresis, final_direction
 
+def play_operator_update(z: torch.Tensor, pressure: torch.Tensor, widths: torch.Tensor) -> torch.Tensor:
+    """遊び（play）作用素の状態更新。z[..., i] = clip(z[..., i], P - w_i, P + w_i)
+
+    z: (..., K) 各要素の内部状態 [MPa]、pressure: (...) 圧力 [MPa]、widths: (K,) 片側の幅 w_i [MPa]
+    圧力が w_i より大きく戻らない限り z は動かない（速さに依らず、w_i より小さいノイズでは向きが変わらない）
+    """
+    P = pressure.unsqueeze(-1)
+    return torch.minimum(torch.maximum(z, P - widths), P + widths)
+
+
+def play_direction(z: torch.Tensor, pressure: torch.Tensor, widths: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
+    """ヒステリシスの向き d = Σ_i a_i (P - z_i) / w_i（-1〜+1）。+1 = 加圧の枝、-1 = 減圧の枝、途中は連続に移る"""
+    P = pressure.unsqueeze(-1)
+    return torch.sum(weights * (P - z) / widths, dim=-1)
+
+
+def calculate_play_friction(h_dot, direction, pressure, viscosity, hys_coef_p, hys_const,
+                            contract_gain=1.0, extend_gain=1.0):
+    """遊び型ヒステリシス力。大きさと非対称は calculate_simple_latched_friction と同じで、向き d だけを遊び作用素から取る"""
+    f_viscous = -1.0 * viscosity * h_dot
+    friction_magnitude = hys_const + hys_coef_p * torch.abs(pressure)
+    blend_pos = 0.5 * (1.0 + direction)
+    blend_neg = 0.5 * (1.0 - direction)
+    asym_scale = (contract_gain * blend_pos) + (extend_gain * blend_neg)
+    return f_viscous - friction_magnitude * asym_scale * direction
+
+
 class PAMChannel:
     # ... (既存コードそのまま) ...
     def __init__(self, dt_ctrl: float, tau: float = 0.09, dead_time: float = 0.03, Pmax: float = 0.6,
