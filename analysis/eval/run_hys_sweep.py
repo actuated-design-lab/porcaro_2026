@@ -17,6 +17,8 @@
   python analysis/eval/run_hys_sweep.py --stage 1
   python analysis/eval/run_hys_sweep.py --stage 2 --play_w 0.02 --play_cp 15     # stage1 の結果で選んだ値
   python analysis/eval/run_hys_sweep.py --stage 1 --dry_run                       # コマンドだけ表示
+  python analysis/eval/run_hys_sweep.py --stage 1 --play_ws 0.005 0.08 --play_cps 15 7.5 3.75   # 範囲を広げる
+  python analysis/eval/run_hys_sweep.py --stage 2 --play_w 0.02 --play_cp 7.5 --play_ws2 0.01 0.04  # 2要素も一緒に
 """
 from __future__ import annotations
 
@@ -42,13 +44,17 @@ STAGE1_CP = [15.0, 7.5]                  # 大きさ cP [N/MPa]（c0 = 0.5 N は
 def hys_variants(stage, args):
     v = [("relay", {"pam_hys_mode": "relay"})]
     if stage == 1:
-        for w, cp in itertools.product(STAGE1_W, STAGE1_CP):
+        for w, cp in itertools.product(args.play_ws or STAGE1_W, args.play_cps or STAGE1_CP):
             v.append((f"play_w{w * 1000:.0f}_cp{cp:g}",
                       {"pam_hys_mode": "play", "pam_hys_play_widths": [w], "pam_hys_coef_p": cp}))
     else:
         w, cp = args.play_w, args.play_cp
         v.append((f"play_w{w * 1000:.0f}_cp{cp:g}",
                   {"pam_hys_mode": "play", "pam_hys_play_widths": [w], "pam_hys_coef_p": cp}))
+        if args.play_ws2:
+            ws = list(args.play_ws2)
+            v.append(("play_w" + "-".join(f"{x * 1000:.0f}" for x in ws) + f"_cp{cp:g}",
+                      {"pam_hys_mode": "play", "pam_hys_play_widths": ws, "pam_hys_coef_p": cp}))
     return v
 
 
@@ -70,6 +76,10 @@ def main():
     p.add_argument("--out_dir", default=os.path.join(ROOT, "data/user0/jfps2026/replay/hys"))
     p.add_argument("--play_w", type=float, default=0.02, help="stage2 で使う play の片側の幅 [MPa]")
     p.add_argument("--play_cp", type=float, default=15.0, help="stage2 で使う cP [N/MPa]")
+    p.add_argument("--play_ws", type=float, nargs="*", default=None, help="stage1 で振る w [MPa]（既定 0.01 0.02 0.04）")
+    p.add_argument("--play_cps", type=float, nargs="*", default=None, help="stage1 で振る cP [N/MPa]（既定 15 7.5）")
+    p.add_argument("--play_ws2", type=float, nargs="*", default=None,
+                   help="stage2 を2要素（Prandtl–Ishlinskii）で流すときの w の組 [MPa]（例 0.01 0.04。重みは等分）")
     p.add_argument("--motions", nargs="*", default=None, help="動作を絞る（既定は段階ごとの一覧）")
     p.add_argument("--dry_run", action="store_true")
     a = p.parse_args()
