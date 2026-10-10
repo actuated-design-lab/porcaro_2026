@@ -23,3 +23,9 @@
 - `wire_screen.csv`：ワイヤー外れの洗い出し（実機の角度の跳び、実機だけ張り付いて measured の sim が動いた区間）。除外はしていない
 - `angles_tm_C_sine.png`, `angles_tm_C_sine_zoom.png`, `angles_tm_E_dbl160_seed2.png`：角度波形（実機と measured / measuredV2 / orificeV2 / shaped / pilot_leak）
 - `overview_measured.png`：全動作の実機と measuredV2（なければ measured）
+
+## hys/ — ヒステリシス力のモデル（relay / play）の比較（10/11）
+
+`analysis/eval/run_hys_sweep.py` の出力。ファイル名は `sim_<動作>__<圧力モデル>__<ヒステリシス>.{csv,json}`
+（圧力モデル：`measured_raw`＝実測圧力そのまま、`measured_v2`＝平滑化＋遊び、`orificeV2`。ヒステリシス：`relay`、`play_w<幅kPa>_cp<cP>`）。
+集計は `analysis/eval/hys_loops.py` → `hys/summary/`。モデルの式と計画は `docs/hysteresis_play_20261011.md`。

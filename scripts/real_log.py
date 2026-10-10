@@ -58,3 +58,42 @@ def load_real_aligned(path, cmd_50hz, dt):
     out, lag = align_real_log(pd.read_csv(path), cmd_50hz, dt)
     print(f"[real] エコーで合わせたずれ: {lag * 5} ms（flag が指令に一致する位置）")
     return out
+
+
+# ---------------------------------------------------------------------------
+# jetson_project の置き場所（2026/10 の v4 再編に対応。古い test_signals/ にも対応）
+#   v4 : 入力信号 signals/<name>.csv、実測 data/<user>/<venue>/playback_<日付>/data_<name>_<unixtime>.csv
+#   旧 : どちらも test_signals/
+# ---------------------------------------------------------------------------
+def jetson_signal_path(jetson, name):
+    """入力信号（指令, 50 Hz）のパス。name は tm_C_sine など（.csv なし）"""
+    import os
+    for d in ("signals", "test_signals"):
+        p = os.path.join(jetson, d, f"{name}.csv")
+        if os.path.exists(p):
+            return p
+    raise FileNotFoundError(f"{name}.csv が {jetson}/signals/ にも test_signals/ にも無い")
+
+
+def jetson_real_logs(jetson, name):
+    """実測ログ data_<name>_<数字>.csv の一覧（_drum などの別信号は除く）"""
+    import glob, os
+    pats = [os.path.join(jetson, "data", "*", "*", "playback_*", f"data_{name}_*.csv"),
+            os.path.join(jetson, "test_signals", f"data_{name}_*.csv")]
+    out = []
+    for pat in pats:
+        out += [f for f in glob.glob(pat) if os.path.basename(f)[len(f"data_{name}_"):-4].isdigit()]
+    return sorted(set(out))
+
+
+def find_real_log(jetson, name, hint=None):
+    """実測ログを1本に決める。hint（json に書かれたパス）があれば、そのファイル名を優先して探す"""
+    import os
+    logs = jetson_real_logs(jetson, name)
+    if hint:
+        hit = [f for f in logs if os.path.basename(f) == os.path.basename(hint)]
+        if hit:
+            return hit[0]
+    if len(logs) != 1:
+        raise FileNotFoundError(f"{name}: 実測ログが {len(logs)} 本: {logs}")
+    return logs[0]

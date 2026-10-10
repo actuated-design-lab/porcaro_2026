@@ -34,6 +34,13 @@ class TorqueControllerCfg:
     pam_p_dot_scale: float = 100.0      # 向き d = tanh(clip(scale·dP/dt)/0.1) の scale
     transition_width: float = 0.0       # たるみ→張りの遷移幅（0 = 階段）
 
+    # --- ヒステリシス力の向きの決め方（2026/10/10 追加。既定は従来どおり relay） ---
+    #   relay: 圧力の変化率の符号で即座に切り替える（RA-L まで）
+    #   play : 圧力の遊び作用素。幅 w_i [MPa] 以上戻ったときに連続に切り替わる（速さに依らない）
+    pam_hys_mode: str = "relay"
+    pam_hys_play_widths: tuple[float, ...] = (0.02,)    # 片側の幅 w_i [MPa]。複数並べると Prandtl–Ishlinskii 型
+    pam_hys_play_weights: tuple[float, ...] | None = None   # 各要素の重み（合計 1）。None = 等分
+
     # --- 電磁弁（2値）モード。既定 False = 従来どおりの連続値（RA-L と同じ） ---
     use_discrete_action: bool = False   # True で指令圧力を 0 / Pmax の2値にする（common/actions/discrete_torque.py）
     discrete_threshold: float = 0.5     # 連続値の指令圧力が Pmax の何割以上で ON にするか（0〜1）
