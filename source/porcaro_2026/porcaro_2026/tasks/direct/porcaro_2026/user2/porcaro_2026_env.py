@@ -197,7 +197,7 @@ class Porcaro2026Env(DirectRLEnv):
 
         self.use_frame_stacking = getattr(self.cfg, "use_frame_stacking", False)
         self.frame_stack_k = getattr(self.cfg, "frame_stack_k", 1)
-        self.base_obs_dim = 13 + self.lookahead_steps
+        self.base_obs_dim = self.cfg.base_obs_dim_core + self.lookahead_steps
 
         if self.use_frame_stacking:
             self.obs_history = torch.zeros(
@@ -556,6 +556,7 @@ class Porcaro2026Env(DirectRLEnv):
             q=q_full_corrected,
             joint_ids=(self.wrist_id, self.grip_id),
             robot=self.robot,
+            write_to_robot=False,  # 肘トルクと合算してから下で書き込む
         )
 
         # ---------------------------------------------------------

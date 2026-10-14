@@ -220,7 +220,11 @@ class TorqueActionController(ActionController):
 
     @torch.no_grad()
     def apply(self, *, actions: torch.Tensor, q: torch.Tensor,
-              joint_ids: tuple[int, int], robot: RobotLike) -> torch.Tensor:
+              joint_ids: tuple[int, int], robot: RobotLike,
+              write_to_robot: bool = True) -> torch.Tensor:
+        # write_to_robot=True  : これまで通りここで robot にトルクを書き込む (user0 / user1)
+        # write_to_robot=False : 書き込まずに tau_full を返すだけ。呼び出し側で他の関節の
+        #                        トルクと合算してから書き込む (user2 の 3 自由度化)
         wid, gid = joint_ids
         n_envs = int(q.shape[0])
 
@@ -384,7 +388,8 @@ class TorqueActionController(ActionController):
         tau_full = torch.zeros(n_envs, robot.num_joints, device=q.device, dtype=q.dtype)
         tau_full[:, wid] = -tau_w
         tau_full[:, gid] = -tau_g
-        #robot.set_joint_effort_target(tau_full) ３自由度実装時に無効化
+        if write_to_robot:
+            robot.set_joint_effort_target(tau_full)
 
         P_act_stack = torch.stack([P_DF, P_F, P_G], dim=1)
         self._last_telemetry = {

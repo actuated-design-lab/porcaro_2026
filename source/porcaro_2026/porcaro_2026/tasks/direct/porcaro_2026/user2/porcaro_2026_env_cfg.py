@@ -60,6 +60,9 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
     drum_contact_cfg: ContactSensorCfg = drum_vs_stick_cfg
     
     action_space: int = 4
+    # lookahead を除いた観測次元: q(3)+qd(3)+prev_act(4)+sin(1)+cos(1)+bpm(1)
+    # scripts/rsl_rl/train.py もこの値を読む (未定義の user0 / user1 は 10)
+    base_obs_dim_core: int = 13
     observation_space: int = 60
     state_space: int = 0
     dof_names: list[str] = ["base_link_v2_v2_Elbow_joint", "forearm_link_v2_Wrist_joint","Hand_link_Grip_joint"]
@@ -116,7 +119,7 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
         lookahead_steps = int(self.lookahead_horizon / dt_ctrl)
 
         # ベース次元(13) = q(3)+qd(3)+prev_act(4)+sin(1)+cos(1)+bpm(1)
-        base_obs_dim = 13 + lookahead_steps
+        base_obs_dim = self.base_obs_dim_core + lookahead_steps
 
         if self.use_frame_stacking:
             self.observation_space = base_obs_dim * self.frame_stack_k
