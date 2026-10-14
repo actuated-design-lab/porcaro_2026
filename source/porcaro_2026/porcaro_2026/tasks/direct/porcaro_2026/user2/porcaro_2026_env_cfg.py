@@ -59,10 +59,27 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
     stick_contact_cfg: ContactSensorCfg = contact_forces_stick_at_drum_cfg
     drum_contact_cfg: ContactSensorCfg = drum_vs_stick_cfg
     
-    action_space: int = 3
+    action_space: int = 4
     observation_space: int = 60
     state_space: int = 0
-    dof_names: list[str] = ["Base_link_Wrist_joint", "Hand_link_Grip_joint"]
+    dof_names: list[str] = ["base_link_v2_v2_Elbow_joint", "forearm_link_v2_Wrist_joint","Hand_link_Grip_joint"]
+
+    # =========================================================
+    # Elbow モータ制御設定
+    # =========================================================
+
+    # RL action [-1, 1] をこの角度範囲へ変換する
+    elbow_target_min_deg: float = -70.0
+    elbow_target_max_deg: float = 20.0
+
+    # Elbow 位置制御用 PD ゲイン
+    # ※現時点では仮置き。後で実機・シミュレーションに合わせて調整する
+    elbow_kp: float = 20.0
+    elbow_kd: float = 1.0
+
+    # Elbow に許容する最大トルク
+    # ※現時点では仮置き。後で決定する
+    elbow_effort_limit: float = 20.0
 
     # Model B: 有効収縮率とたわみを考慮する幾何学設定
     pam_geometric_cfg: PamGeometricCfg = PamGeometricCfg(
@@ -98,8 +115,8 @@ class Porcaro2026EnvCfg(DirectRLEnvCfg):
         dt_ctrl = self.sim.dt * self.decimation
         lookahead_steps = int(self.lookahead_horizon / dt_ctrl)
 
-        # ベース次元(10) = q(2)+qd(2)+prev_act(3)+sin(1)+cos(1)+bpm(1)
-        base_obs_dim = 10 + lookahead_steps
+        # ベース次元(13) = q(3)+qd(3)+prev_act(4)+sin(1)+cos(1)+bpm(1)
+        base_obs_dim = 13 + lookahead_steps
 
         if self.use_frame_stacking:
             self.observation_space = base_obs_dim * self.frame_stack_k
