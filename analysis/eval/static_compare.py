@@ -42,13 +42,13 @@ def smooth(x, n=21):
     return np.convolve(x, np.ones(n) / n, "same")
 
 
-def load_real(jetson, hint=None):
-    cmd = pd.read_csv(RL.jetson_signal_path(jetson, MOTION))
+def load_real(jetson, hint=None, motion=MOTION):
+    cmd = pd.read_csv(RL.jetson_signal_path(jetson, motion))
     c3 = cmd[["cmd_pressure_DF", "cmd_pressure_F", "cmd_pressure_G"]].values
-    A, _ = RL.align_real_log(pd.read_csv(RL.find_real_log(jetson, MOTION, hint)), c3, DT,
+    A, _ = RL.align_real_log(pd.read_csv(RL.find_real_log(jetson, motion, hint)), c3, DT,
                              columns=RL.PRES_COLS + ("wrist_angle_deg",))
     r = pd.DataFrame(A, columns=["P_DF", "P_F", "P_G", "wrist"])
-    seg = pd.read_csv(RL.jetson_signal_path(jetson, MOTION).replace(".csv", "_annotated.csv")).segment.values
+    seg = pd.read_csv(RL.jetson_signal_path(jetson, motion).replace(".csv", "_annotated.csv")).segment.values
     r["segment"] = seg[np.clip((np.arange(len(r)) * DT / RL.CMD_DT).astype(int), 0, len(seg) - 1)]
     return r
 
@@ -72,10 +72,11 @@ def main():
     ap.add_argument("--sim", required=True, help="replay_open_loop.py の出力 csv（id_static_cocontraction）")
     ap.add_argument("--jetson", default=os.environ.get("JETSON_PROJECT", os.path.join(os.path.dirname(ROOT), "jetson_project")))
     ap.add_argument("--real_log", default=None, help="実測ログが複数あるときに選ぶファイル名")
+    ap.add_argument("--motion", default=MOTION, help="試験の名前（id_static_cocontraction / id_static_F_taut）")
     a = ap.parse_args()
     out = os.path.join(os.path.dirname(os.path.abspath(a.sim)), "summary"); os.makedirs(out, exist_ok=True)
 
-    r = load_real(a.jetson, a.real_log)
+    r = load_real(a.jetson, a.real_log, a.motion)
     s = pd.read_csv(a.sim); n = min(len(s), len(r)); r, s = r.iloc[:n], s.iloc[:n]
     rows, curves = [], []
     for seg in pd.unique(r.segment):
@@ -110,9 +111,10 @@ def main():
     for ch in ("DF", "F"):
         for src in ("real", "sim"):
             g = C[(C.ch == ch) & (C.src == src) & (C.tri == 1) & np.isclose(C.P, 0.30)].set_index("ant").center
-            if {0.10, 0.30} <= set(g.index):
-                sh.append(dict(ch=ch, src=src, **{f"center_ant{x:.2f}": g.get(x, np.nan) for x in (0.10, 0.20, 0.30)},
-                               shift_0p10_to_0p30=g[0.30] - g[0.10]))
+            if len(g) >= 2 and g.notna().sum() >= 2:
+                lo_, hi_ = min(g.index), max(g.index)
+                sh.append(dict(ch=ch, src=src, **{f"center_ant{x:.2f}": g.get(x, np.nan) for x in sorted(g.index)},
+                               **{f"shift_{lo_:.2f}_to_{hi_:.2f}": g[hi_] - g[lo_]}))
     SH = pd.DataFrame(sh)
 
     with open(os.path.join(out, "static_summary.md"), "w", encoding="utf-8") as fo:

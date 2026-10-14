@@ -40,9 +40,12 @@ class TorqueControllerCfg:
     # --- ヒステリシス力の向きの決め方（2026/10/10 追加。既定は従来どおり relay） ---
     #   relay: 圧力の変化率の符号で即座に切り替える（RA-L まで）
     #   play : 圧力の遊び作用素。幅 w_i [MPa] 以上戻ったときに連続に切り替わる（速さに依らない）
+    #   play_length : 筋の長さ（収縮率 h）の遊び作用素。圧力一定でも関節が動けば向きが変わる（2026/10/14 追加）
     pam_hys_mode: str = "relay"
     pam_hys_play_widths: tuple[float, ...] = (0.02,)    # 片側の幅 w_i [MPa]。複数並べると Prandtl–Ishlinskii 型
     pam_hys_play_weights: tuple[float, ...] | None = None   # 各要素の重み（合計 1）。None = 等分
+    # pam_hys_mode = "play_length" のとき：筋の収縮率 h の遊びの幅（0.003 = 0.3%、手首 1.8° 相当）。2026/10/14 追加
+    pam_hys_play_widths_h: tuple[float, ...] = (0.003,)
 
     # --- 電磁弁（2値）モード。既定 False = 従来どおりの連続値（RA-L と同じ） ---
     use_discrete_action: bool = False   # True で指令圧力を 0 / Pmax の2値にする（common/actions/discrete_torque.py）

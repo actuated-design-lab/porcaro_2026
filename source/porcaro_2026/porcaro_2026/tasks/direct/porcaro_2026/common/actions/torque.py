@@ -44,6 +44,7 @@ class TorqueActionController(ActionController):
                  pam_hys_mode: str = "relay",
                  pam_hys_play_widths: tuple[float, ...] = (0.02,),
                  pam_hys_play_weights: tuple[float, ...] | None = None,
+                 pam_hys_play_widths_h: tuple[float, ...] = (0.003,),
                  pam_engage_width_deg: tuple[float, float, float] = (0.0, 0.0, 0.0),
                  ):
 
@@ -91,9 +92,14 @@ class TorqueActionController(ActionController):
         # ヒステリシス力の向きの決め方
         #   "relay"（既定・RA-L まで）: 圧力の変化率 dP/dt の符号で即座に切り替える（calculate_simple_latched_friction）
         #   "play"                    : 圧力の遊び作用素で決める。幅 w_i [MPa] 以上戻ったときに連続に切り替わる（速さに依らない）
-        if pam_hys_mode not in ("relay", "play"):
-            raise ValueError(f"pam_hys_mode は 'relay' か 'play': {pam_hys_mode}")
+        #   "play_length"             : 筋の長さ（収縮率 h）の遊び作用素で決める（2026/10/14 追加）。幅は pam_hys_play_widths_h
+        #                               [収縮率、0.003 = 0.3%、手首 1.8° 相当]。筋が縮む向きで d = +1（圧力の play の加圧の枝と同じ扱い）。
+        #                               圧力一定でも関節が動けば向きが変わる（ISIE 静的負荷試験で、圧力一定でもループが出ることに対応）
+        if pam_hys_mode not in ("relay", "play", "play_length"):
+            raise ValueError(f"pam_hys_mode は 'relay' か 'play' か 'play_length': {pam_hys_mode}")
         self.pam_hys_mode = pam_hys_mode
+        if pam_hys_mode == "play_length":
+            pam_hys_play_widths = pam_hys_play_widths_h
         w = [float(v) for v in (pam_hys_play_widths if isinstance(pam_hys_play_widths, (list, tuple)) else [pam_hys_play_widths])]
         if any(v <= 0 for v in w):
             raise ValueError(f"pam_hys_play_widths は正の値: {w}")
@@ -322,8 +328,11 @@ class TorqueActionController(ActionController):
             h_dot_G  = calculate_h_dot(dq_grip_rad,  self.r, SIGN_G,  self.L0_sim)
 
             # 4. 摩擦力（ヒステリシス）
-            if self.pam_hys_mode == "play":
-                P_now = torch.stack([P_DF, P_F, P_G], dim=1)                       # (n_envs, 3)
+            if self.pam_hys_mode in ("play", "play_length"):
+                if self.pam_hys_mode == "play":
+                    P_now = torch.stack([P_DF, P_F, P_G], dim=1)                   # (n_envs, 3) 遊び作用素の入力＝圧力
+                else:
+                    P_now = torch.stack([h_DF, h_F, h_G], dim=1)                   # 遊び作用素の入力＝筋の収縮率（縮むと増える）
                 if self.play_needs_init is not None and bool(self.play_needs_init.any()):
                     m = self.play_needs_init
                     self.play_state[m] = P_now[m].unsqueeze(-1).expand(-1, -1, self.play_state.shape[-1])
