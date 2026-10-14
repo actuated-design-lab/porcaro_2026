@@ -1,0 +1,21 @@
+{
+  "signal": "/home/actuated/my_isaaclab_projects/jetson_project/signals/id_static_cocontraction.csv",
+  "pmodel": "measured",
+  "params": {},
+  "no_drum": true,
+  "real_log": "/home/actuated/my_isaaclab_projects/jetson_project/data/user0/jfps2026/playback_20261014/data_id_static_cocontraction_1791946765.csv",
+  "dt": 0.005,
+  "env_cfg": "Porcaro2026EnvCfg_Default (DRなし)",
+  "ctrl": {
+    "pam_hys_mode": "play_length",
+    "pam_hys_play_widths_h": [
+      0.003
+    ],
+    "pam_hys_coef_p": 15.0
+  },
+  "joint": {},
+  "meas_filter": {
+    "lpf_ms": 0.0,
+    "play_kpa": 0.0
+  }
+}
