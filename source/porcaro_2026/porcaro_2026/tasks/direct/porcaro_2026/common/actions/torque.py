@@ -44,6 +44,7 @@ class TorqueActionController(ActionController):
                  pam_hys_mode: str = "relay",
                  pam_hys_play_widths: tuple[float, ...] = (0.02,),
                  pam_hys_play_weights: tuple[float, ...] | None = None,
+                 pam_engage_width_deg: tuple[float, float, float] = (0.0, 0.0, 0.0),
                  ):
 
         self.dt_ctrl = float(dt_ctrl)
@@ -75,6 +76,12 @@ class TorqueActionController(ActionController):
             self.force_scale_DF = self.force_scale_F = self.force_scale_G = float(force_scale)
         self.force_scale = self.force_scale_DF   # 互換用（以前の単一値）
         self.transition_width = float(transition_width)
+        # ワイヤが張り始めてから張り切るまでの角度幅 [deg]（DF, F, G）。0 = 従来どおり（θt で即座に張る）。
+        # θt からたるむ側へ w 度の範囲で、筋の力に 0→1 の係数を線形に掛ける（θt で 1、θt から w 度で 0）。
+        # 例: F を θt_F = 70°、w = 47° にすると、23° で張り始めて 70° で張り切る（10/14 静的試験の当てはめ）
+        if len(pam_engage_width_deg) != 3:
+            raise ValueError(f"pam_engage_width_deg は (DF, F, G) の3要素: {pam_engage_width_deg}")
+        self.engage_width_rad = tuple(math.radians(float(v)) for v in pam_engage_width_deg)
 
         self.pam_p_dot_scale = float(pam_p_dot_scale)
         self.pam_contract_gain = float(pam_contract_gain)
@@ -376,6 +383,17 @@ class TorqueActionController(ActionController):
             F_DF = apply_soft_engagement(F_DF_total_raw, h_DF, h0_DF, self.transition_width)
             F_F  = apply_soft_engagement(F_F_total_raw,  h_F,  h0_F,  self.transition_width)
             F_G  = apply_soft_engagement(F_G_total_raw,  h_G,  h0_G,  self.transition_width)
+
+        # ワイヤの張り始め（pam_engage_width_deg > 0 の筋だけ）
+        if any(w > 0.0 for w in self.engage_width_rad):
+            def _engage(F, q_rad, th_t, sign, w):
+                if w <= 0.0:
+                    return F
+                slack = sign * (q_rad - th_t)            # θt からたるむ側へ何 rad 入っているか（幾何の縮み × L/r）
+                return F * torch.clamp(1.0 - slack / w, min=0.0, max=1.0)
+            F_DF = _engage(F_DF, q_wrist_rad, th_DF, SIGN_DF, self.engage_width_rad[0])
+            F_F  = _engage(F_F,  q_wrist_rad, th_F,  SIGN_F,  self.engage_width_rad[1])
+            F_G  = _engage(F_G,  q_grip_rad,  th_G,  SIGN_G,  self.engage_width_rad[2])
 
         # トルク計算
         tau_w = self.r * (F_DF - F_F)
