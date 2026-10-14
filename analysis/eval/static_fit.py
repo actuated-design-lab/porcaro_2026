@@ -9,6 +9,7 @@ sim（common/actions/torque.py の Model B）の静的な部分だけを Python 
 static_compare.py の static_curves.csv（上げ・下げの枝の平均＝中心曲線）を読み、
   1) sim のパラメータで sim の中心曲線を再現できるか（簡易モデルの検証）。同時に重力 τg を推定
   2) 実機の中心曲線に s_DF, s_F, θt_DF, θt_F を当てはめる（重力は sim のまま）
+  3) θt_F = 70 に固定し、F のワイヤの張り始めの幅（pam_engage_width_deg）を入れて当てはめる
 注意：重力と力の倍率は、比しか効かない（一緒に大きくしても同じつり合いになる）ので、重力は sim の値に固定する。
 
 使い方: python analysis/eval/static_fit.py [--curves data/user0/jfps2026/replay/static/summary/static_curves.csv]
@@ -49,19 +50,21 @@ def muscle(P, h, s, f):
     return np.where(h <= np.interp(P, H0P, H0V), np.maximum(s * F + f, 0), 0.0)
 
 
-def tau(th_deg, PDF, PF, fDF, fF, sDF, sF, tDF, tF):
+def tau(th_deg, PDF, PF, fDF, fF, sDF, sF, tDF, tF, wF=0.0):
+    """wF > 0：F のワイヤが θt_F − wF [deg] で張り始め θt_F で張り切る（torque.py の pam_engage_width_deg と同じ）"""
     th = np.radians(th_deg)
     hDF = R_PULLEY * (th - np.radians(tDF)) / L0
     hF = R_PULLEY * (np.radians(tF) - th) / L0
-    return R_PULLEY * (muscle(PDF, hDF, sDF, fDF) - muscle(PF, hF, sF, fF))
+    eF = np.clip(1 - (tF - th_deg) / wF, 0, 1) if wF > 0 else 1.0
+    return R_PULLEY * (muscle(PDF, hDF, sDF, fDF) - eF * muscle(PF, hF, sF, fF))
 
 
-def predict(d, sDF, sF, tDF, tF, a, b):
+def predict(d, sDF, sF, tDF, tF, a, b, wF=0.0):
     out = []
     for ch, ant, P in zip(d.ch, d.ant, d.P):
         fsw = 0.5 * (fric(P, 1) + fric(P, -1)); fh = fric(ant, D_HELD[(ch, round(ant, 2))])
         PDF, PF, fD, fF = (P, ant, fsw, fh) if ch == "DF" else (ant, P, fh, fsw)
-        Rr = tau(TH, PDF, PF, fD, fF, sDF, sF, tDF, tF) - (a + b * np.radians(TH))
+        Rr = tau(TH, PDF, PF, fD, fF, sDF, sF, tDF, tF, wF) - (a + b * np.radians(TH))
         i = np.flatnonzero((Rr[:-1] > 0) & (Rr[1:] <= 0))
         if len(i):
             k = i[0]; out.append(TH[k] + (TH[k + 1] - TH[k]) * Rr[k] / (Rr[k] - Rr[k + 1]))
@@ -92,6 +95,18 @@ def main():
     f = least_squares(lambda p: predict(real, p[0], p[1], p[2], p[3], a, b) - real.center.values, [0.2, 0.2, 7, 70],
                       bounds=([0.05, 0.01, -30, 0], [0.5, 0.5, 40, 140]), diff_step=1e-2)
     e_fit = f.fun
+    # 4. F のワイヤの張り始めを入れる（θt_F = 70 に固定し、張り始めの幅 wF を当てはめる。2026/10/14）
+    fr = min((least_squares(lambda p: predict(real, p[0], p[1], p[2], 70.0, a, b, p[3]) - real.center.values, x0,
+                            bounds=([0.05, 0.01, -30, 1], [1.5, 1.5, 40, 90]), diff_step=1e-2)
+              for x0 in ([0.2, 0.2, 7, 40], [0.3, 0.3, 5, 34])), key=lambda r_: r_.cost)
+    e_ramp = fr.fun
+    # 重力を k 倍したときの当てはめ（倍率は重力との比しか決まらないことの確認）
+    gk = []
+    for k in (2.0, 3.0):
+        r_ = least_squares(lambda p: predict(real, p[0], p[1], p[2], 70.0, k * a, k * b, p[3]) - real.center.values,
+                           np.r_[fr.x[:2] * k, fr.x[2:]], bounds=([0.02, 0.01, -30, 1], [2, 2, 40, 90]), diff_step=1e-2)
+        gk.append(f"- 重力 ×{k:.0f}: DF {r_.x[0]:.3f}、F {r_.x[1]:.3f}、θt_DF {r_.x[2]:.1f}、張り始め {70 - r_.x[3]:.1f} deg、"
+                  f"RMSE {np.sqrt(np.mean(r_.fun ** 2)):.2f} deg")
     rm = lambda e: np.sqrt(np.mean(e ** 2))
     txt = [
         "# 静的なつり合いの当てはめ（static_fit.py）", "",
@@ -103,7 +118,13 @@ def main():
         "## 3. 実機に当てはめ（重力は sim のまま）", "",
         f"- force_scale DF = {f.x[0]:.3f}、F = {f.x[1]:.3f}（今は 0.2, 0.2）",
         f"- theta_t_DF_deg = {f.x[2]:.1f}、theta_t_F_deg = {f.x[3]:.1f}（今は 7, 70）",
-        f"- RMSE {rm(e_fit):.2f} deg", "", "```", table(real, e_fit), "```", ""]
+        f"- RMSE {rm(e_fit):.2f} deg", "", "```", table(real, e_fit), "```", "",
+        "## 4. 実機に当てはめ：F のワイヤの張り始めを入れる（θt_F = 70 固定）", "",
+        f"- force_scale DF = {fr.x[0]:.3f}、F = {fr.x[1]:.3f}",
+        f"- theta_t_DF_deg = {fr.x[2]:.1f}",
+        f"- pam_engage_width_deg（F）= {fr.x[3]:.1f}（{70 - fr.x[3]:.1f} deg で張り始めて 70 deg で張り切る）",
+        f"- RMSE {rm(e_ramp):.2f} deg", "", "```", table(real, e_ramp), "```", "",
+        "倍率は重力との比しか決まらない（重力を変えると倍率が一緒に動き、RMSE はほぼ同じ）:", "", *gk, ""]
     out = os.path.join(os.path.dirname(os.path.abspath(a_.curves)), "static_fit.md")
     open(out, "w", encoding="utf-8").write("\n".join(txt))
     print("\n".join(txt))

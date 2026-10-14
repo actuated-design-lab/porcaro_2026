@@ -33,6 +33,9 @@ class TorqueControllerCfg:
     pam_extend_gain: float = 1.0        # 伸長側の非対称係数
     pam_p_dot_scale: float = 100.0      # 向き d = tanh(clip(scale·dP/dt)/0.1) の scale
     transition_width: float = 0.0       # たるみ→張りの遷移幅（0 = 階段）
+    # ワイヤが張り始めてから張り切るまでの角度幅 [deg]（DF, F, G）。0 = 従来どおり（θt で即座に張る）
+    #   θt からたるむ側へこの幅の範囲で、筋の力に 0→1 の係数を線形に掛ける（2026/10/14 追加）
+    pam_engage_width_deg: tuple[float, float, float] = (0.0, 0.0, 0.0)
 
     # --- ヒステリシス力の向きの決め方（2026/10/10 追加。既定は従来どおり relay） ---
     #   relay: 圧力の変化率の符号で即座に切り替える（RA-L まで）
