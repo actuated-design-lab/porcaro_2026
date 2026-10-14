@@ -132,6 +132,16 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     # override configurations with non-hydra CLI arguments
     agent_cfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
+    # 再帰型 (LSTM/GRU) 方策では rsl_rl がミニバッチを「環境単位」で切る
+    # (mini_batch_size = num_envs // num_mini_batches)。num_envs が足りないと空のミニバッチになり、
+    # loss と noise std が nan と表示されたまま一切学習しない。黙って進まないよう、ここで止める。
+    _policy_cls = str(getattr(agent_cfg.policy, "class_name", ""))
+    _n_mb = agent_cfg.algorithm.num_mini_batches
+    if "Recurrent" in _policy_cls and env_cfg.scene.num_envs < _n_mb:
+        raise ValueError(
+            f"再帰型方策 ({_policy_cls}) では num_envs ({env_cfg.scene.num_envs}) を "
+            f"num_mini_batches ({_n_mb}) 以上 (できれば倍数) にしてください。"
+        )
     agent_cfg.max_iterations = (
         args_cli.max_iterations if args_cli.max_iterations is not None else agent_cfg.max_iterations
     )
@@ -222,7 +232,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     dt_ctrl = env_cfg.sim.dt * env_cfg.decimation
     lookahead_steps = int(env_cfg.lookahead_horizon / dt_ctrl)
-    base_obs_dim = 10 + lookahead_steps
+    # lookahead を除いた観測次元は env_cfg ごとに違う (user0/user1: 10, user2 の 3 自由度: 13)
+    base_obs_dim = getattr(env_cfg, "base_obs_dim_core", 10) + lookahead_steps
     env_cfg.observation_space = (
         base_obs_dim * env_cfg.frame_stack_k if env_cfg.use_frame_stacking else base_obs_dim
     )
