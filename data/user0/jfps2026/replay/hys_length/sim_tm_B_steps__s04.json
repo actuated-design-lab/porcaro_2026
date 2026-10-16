@@ -1,0 +1,23 @@
+{
+  "signal": "/home/actuated/my_isaaclab_projects/jetson_project/signals/tm_B_steps.csv",
+  "pmodel": "measured",
+  "params": {},
+  "no_drum": true,
+  "real_log": "/home/actuated/my_isaaclab_projects/jetson_project/data/user0/jfps2026/playback_20261005/data_tm_B_steps_1791183490.csv",
+  "dt": 0.005,
+  "env_cfg": "Porcaro2026EnvCfg_Default (DRなし)",
+  "ctrl": {
+    "pam_hys_mode": "play",
+    "pam_hys_play_widths": [
+      0.04
+    ],
+    "force_scale": 0.4,
+    "pam_hys_const": 1.0,
+    "pam_hys_coef_p": 30.0
+  },
+  "joint": {},
+  "meas_filter": {
+    "lpf_ms": 0.0,
+    "play_kpa": 0.0
+  }
+}
