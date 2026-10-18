@@ -73,7 +73,7 @@ class RewardManager:
         
         self.current_time_s += dt
 
-        wrist_pos = joint_pos[:, 0]
+        wrist_pos = joint_pos[:, 1]
         self.max_height_since_last_hit = torch.max(self.max_height_since_last_hit, wrist_pos)
 
         if current_bpm is None:
