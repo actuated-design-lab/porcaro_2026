@@ -222,7 +222,7 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
 
     dt_ctrl = env_cfg.sim.dt * env_cfg.decimation
     lookahead_steps = int(env_cfg.lookahead_horizon / dt_ctrl)
-    base_obs_dim = 10 + lookahead_steps
+    base_obs_dim = 13 + lookahead_steps
     env_cfg.observation_space = (
         base_obs_dim * env_cfg.frame_stack_k if env_cfg.use_frame_stacking else base_obs_dim
     )

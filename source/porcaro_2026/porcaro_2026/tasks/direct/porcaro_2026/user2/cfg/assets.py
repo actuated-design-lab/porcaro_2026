@@ -81,7 +81,7 @@ print(f"  - Project Root: {PROJECT_ROOT}")
 print(f"  - Data Dir    : {DATA_DIR}")
 print(f"  - Assets Dir  : {ASSETS_DIR}")
 
-ROBOT_USD  = str(ASSETS_DIR / "porcaro.usd")
+ROBOT_USD  = str(ASSETS_DIR / "Porcaro_3-DOF.usd")
 DRUM_USD   = str(ASSETS_DIR / "sneadrum.usd")
 
 # ★ 変更箇所: ファイルが見つからない場合は例外を発生させ、サイレントなフォールバックを阻止する
@@ -115,16 +115,24 @@ ROBOT_CFG = ArticulationCfg(
         ),
     ),
     init_state=ArticulationCfg.InitialStateCfg(
-        pos=(0.11348, -0.34041, 0.0),
-        rot=quat_from_euler_zyx(yaw_deg=30, pitch_deg=0, roll_deg=0),
+        pos=(0.11348, -0.34041, 0.80),
+        rot=quat_from_euler_zyx(yaw_deg=115, pitch_deg=0, roll_deg=0),
         joint_pos={
-            ".*Base_link_Wrist_joint": WRIST_J0,
-            ".*Hand_link_Grip_joint":  GRIP_J0,
+            ".*base_link_v2_v2_Elbow_joint": 0.0,
+            ".*forearm_link_v2_Wrist_joint": 0.0,
+            ".*Hand_link_Grip_joint": GRIP_J0,
         },
     ),
     actuators={
+        "elbow": ImplicitActuatorCfg(
+            joint_names_expr=[".*base_link_v2_v2_Elbow_joint"],
+            stiffness=0.0,
+            damping=0.1,
+            effort_limit_sim=500.0,
+            friction=0.001,
+        ),
         "wrist": ImplicitActuatorCfg(
-            joint_names_expr=[".*Base_link_Wrist_joint"],
+            joint_names_expr=[".*forearm_link_v2_Wrist_joint"],
             stiffness=0.0,
             damping=0.1,
             effort_limit_sim=500.0,

@@ -233,7 +233,7 @@ class TorqueActionController(ActionController):
 
     @torch.no_grad()
     def apply(self, *, actions: torch.Tensor, q: torch.Tensor,
-              joint_ids: tuple[int, int], robot: RobotLike) -> None:
+              joint_ids: tuple[int, int], robot: RobotLike) -> torch.Tensor:
         wid, gid = joint_ids
         n_envs = int(q.shape[0])
 
@@ -411,7 +411,7 @@ class TorqueActionController(ActionController):
         tau_full = torch.zeros(n_envs, robot.num_joints, device=q.device, dtype=q.dtype)
         tau_full[:, wid] = -tau_w
         tau_full[:, gid] = -tau_g
-        robot.set_joint_effort_target(tau_full)
+        #robot.set_joint_effort_target(tau_full) ３自由度実装時に無効化
 
         P_act_stack = torch.stack([P_DF, P_F, P_G], dim=1)
         self._last_telemetry = {
@@ -420,6 +420,7 @@ class TorqueActionController(ActionController):
             "tau_w": tau_w.clone(),
             "tau_g": tau_g.clone()
         }
+        return tau_full
     
     def get_last_telemetry(self):
         return self._last_telemetry
