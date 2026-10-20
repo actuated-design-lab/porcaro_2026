@@ -1,4 +1,4 @@
-"""make_measured_map.py — PAM 単体試験（2026/10/20、DF_robot）の実測から、sim の力マップと自由収縮マップを作る
+"""make_measured_map.py — PAM 単体試験（2026/10/20、予備の筋。データのファイル名の DF_robot は誤り）の実測から、sim の力マップと自由収縮マップを作る
 
 入力: jetson_project の data/user0/pamtest/summary/（analysis/pamtest/force_map.py の出力）
   isometric_table.csv：等尺性。長さ（c_set）× 圧力 × 上げ/下げ の 3 往復平均（P, h [%], F [N]）
