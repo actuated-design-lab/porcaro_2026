@@ -2,7 +2,8 @@
 
 sim（`common/actions/torque.py`）は 2 つの表で PAM の発揮力を決める。
 
-- **力マップ**（`pam_force_map*.csv`）：行 = 内圧 P [MPa]、列 = 収縮率 h [%]（自然長 150 mm に対する縮み、負は伸び）、値 = 力 [N]
+- **力マップ**（`pam_force_map*.csv`）：行 = 内圧 P [MPa]、列 = 収縮率 h [%]（自然長 150 mm に対する縮み、負は伸び）、値 = 力 [N]。
+  行・列の刻みはファイルごとに違ってよい（sim は読んだ軸のまま使う）
 - **自由収縮マップ**（`pam_force_0_map*.csv`）：行 = 内圧 P、列 = 荷重 [N]（0〜620、20 刻み）、値 = その荷重で釣り合う収縮率 [%]。
   sim が使うのは列 0 N（自由収縮 h0）だけで、h > h0 で力を 0 にする（ワイヤのたるみ）
 
@@ -40,6 +41,12 @@ sim（`common/actions/torque.py`）は 2 つの表で PAM の発揮力を決め�
   630 N で頭打ちにし、0 MPa のカタログを下回らないようにした。手首を下げたとき（DF は手首 −20° で約 −4 %）に効くので、
   ここが効く動作では注意
 - **0.7・0.8 MPa は外挿**（0.5→0.6 MPa の変化を延ばした）。ITV は 0.6 MPa までなので sim では使わない
+- **行は 0.025 MPa 刻み、列は 0.5 % 刻み**（旧は 0.1 MPa・1 %）。測ったのは 0.1 刻みの 6 段なので、間の行は補間：
+  h ≥ 0 は曲線を h / h0(P) でそろえて両隣の行から作る（どの圧力でも力がちょうど h0(P) で 0 になる）。h0(P) は
+  測った点を単調な 3 次（PCHIP）でつないだもの。h < 0 は同じ収縮率どうしで直線補間
+- sim は表を双 3 次スプラインで 128 × 128 に細かくしてから双線形で引き、h > h0 で力を 0 にする。表が粗いと h0 の手前に
+  力が残って 0 に段差で落ちる（旧の行・列のままだと 1〜5 N）。今の表でも sim の格子（収縮 0.3 % 刻み）のせいで
+  最大 2.8 N 残るので、**`transition_width` を 0.003（0.3 %）にする**と段差がなくなる（h0 の手前 0.3 % で力を 0 へ直線に絞る）
 - 測った筋は DF の 1 本、1 日分。F・G は測っていない（3 本とも同じマップを使う）
 - 内圧は試験機の G の圧力センサで測った（DF のセンサが故障）。0.6 MPa の段の実測は 0.59〜0.60 MPa
 - 等張性の吊り具の重さは 0 として扱った
@@ -55,7 +62,7 @@ sim（`common/actions/torque.py`）は 2 つの表で PAM の発揮力を決め�
 python scripts/tools/user0/jfps2026/replay_open_loop.py ... --ctrl '{
   "force_map_csv": "source/porcaro_2026/porcaro_2026/tasks/data/pam_force_map_measured.csv",
   "h0_map_csv":    "source/porcaro_2026/porcaro_2026/tasks/data/pam_force_0_map_measured.csv",
-  "force_scale": 1.0}'
+  "force_scale": 1.0, "transition_width": 0.003}'
 ```
 
 既定を新マップに切り替えるのは、静的な試験（10/14 の共収縮・id_static_F_taut）と tm_B・tm_C の再生で確かめてから。
