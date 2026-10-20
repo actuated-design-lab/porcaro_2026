@@ -46,6 +46,7 @@ class TorqueActionController(ActionController):
                  pam_hys_play_weights: tuple[float, ...] | None = None,
                  pam_hys_play_widths_h: tuple[float, ...] = (0.003,),
                  pam_engage_width_deg: tuple[float, float, float] = (0.0, 0.0, 0.0),
+                 pam_map_play_w: float = 0.0,
                  ):
 
         self.dt_ctrl = float(dt_ctrl)
@@ -83,6 +84,16 @@ class TorqueActionController(ActionController):
         if len(pam_engage_width_deg) != 3:
             raise ValueError(f"pam_engage_width_deg は (DF, F, G) の3要素: {pam_engage_width_deg}")
         self.engage_width_rad = tuple(math.radians(float(v)) for v in pam_engage_width_deg)
+        # 力マップ・自由収縮マップに入れる圧力を遊び作用素に通す（2026/10/20 追加）。片側の幅 [MPa]、0 = 従来どおり（実圧力）。
+        # 加圧の途中はマップが w 低い圧力を、減圧の途中は w 高い圧力を見る → 同じ圧力で上げと下げの収縮率が変わる
+        # （PAM 単体の等張性で、上げ・下げの差が圧力の幅で 25〜70 kPa）。0 MPa 付近では上限を 2P にして、0 MPa で力が残らないようにする。
+        # 注意：長さを固定したときの力の差も ∂F/∂P × 2w だけ出る（単体の等尺性で測った差 3.5〜9 N より大きくなりやすい）。
+        # 摩擦（pam_hys_*）も長さのヒステリシスを作るので、両方を入れると二重になる
+        if pam_map_play_w < 0:
+            raise ValueError(f"pam_map_play_w は 0 以上: {pam_map_play_w}")
+        self.pam_map_play_w = float(pam_map_play_w)
+        self.map_play_z = None                          # (n_envs, 3)
+        self.map_play_needs_init = None
 
         self.pam_p_dot_scale = float(pam_p_dot_scale)
         self.pam_contract_gain = float(pam_contract_gain)
@@ -193,6 +204,26 @@ class TorqueActionController(ActionController):
         self.play_weights = torch.tensor(self._play_weights_list, device=device, dtype=torch.float32)
         self.play_state = torch.zeros((n_envs, 3, K), device=device, dtype=torch.float32)
         self.play_needs_init = torch.ones(n_envs, device=device, dtype=torch.bool)
+        self.map_play_z = torch.zeros((n_envs, 3), device=device, dtype=torch.float32)
+        self.map_play_needs_init = torch.ones(n_envs, device=device, dtype=torch.bool)
+
+    def _map_pressure(self, P_DF, P_F, P_G):
+        """マップに入れる圧力。pam_map_play_w = 0 ならそのまま。"""
+        if self.pam_map_play_w <= 0.0:
+            return P_DF, P_F, P_G
+        P = torch.stack([P_DF, P_F, P_G], dim=1)
+        if self.map_play_z is None or self.map_play_z.shape != P.shape:
+            self.map_play_z = P.clone()
+            self.map_play_needs_init = torch.zeros(P.shape[0], device=P.device, dtype=torch.bool)
+        if bool(self.map_play_needs_init.any()):
+            m = self.map_play_needs_init
+            self.map_play_z[m] = P[m]
+            self.map_play_needs_init[m] = False
+        w = self.pam_map_play_w
+        self.map_play_z = torch.minimum(torch.maximum(self.map_play_z, P - w), P + w)
+        Pm = torch.clamp(self.map_play_z, min=0.0)
+        Pm = torch.minimum(Pm, 2.0 * P)               # 0 MPa に近いとき（P < w）は 2P を上限に
+        return Pm[:, 0], Pm[:, 1], Pm[:, 2]
 
     def reset_idx(self, env_ids: torch.Tensor):
         self.ch_DF.reset_idx(env_ids)
@@ -204,6 +235,8 @@ class TorqueActionController(ActionController):
             self.prev_direction_stack[env_ids] = 0.0
         if self.play_needs_init is not None:
             self.play_needs_init[env_ids] = True
+        if self.map_play_needs_init is not None:
+            self.map_play_needs_init[env_ids] = True
 
     def compute_pressure(self, actions: torch.Tensor) -> torch.Tensor:
         # 変更なし
@@ -278,6 +311,9 @@ class TorqueActionController(ActionController):
         SIGN_F  = -1.0
         SIGN_G  = -1.0
 
+        # 力マップ・自由収縮マップに入れる圧力（pam_map_play_w > 0 なら遊び作用素を通したもの）
+        Pm_DF, Pm_F, Pm_G = self._map_pressure(P_DF, P_F, P_G)
+
         # Tensor化された定数角度を使用
         th_DF = self.theta_t_rad_tensors["DF"]
         th_F  = self.theta_t_rad_tensors["F"]
@@ -290,13 +326,13 @@ class TorqueActionController(ActionController):
             eps_G  = calculate_absolute_contraction(q_grip_rad,  th_G,  self.r, self.L0_sim)
             
             if self.force_map is not None and self.h0_map is not None:
-                F_DF = apply_model_a_force(self.force_map, self.h0_map, P_DF, eps_DF) * self.force_scale_DF
-                F_F  = apply_model_a_force(self.force_map, self.h0_map, P_F,  eps_F)  * self.force_scale_F
-                F_G  = apply_model_a_force(self.force_map, self.h0_map, P_G,  eps_G)  * self.force_scale_G
+                F_DF = apply_model_a_force(self.force_map, self.h0_map, Pm_DF, eps_DF) * self.force_scale_DF
+                F_F  = apply_model_a_force(self.force_map, self.h0_map, Pm_F,  eps_F)  * self.force_scale_F
+                F_G  = apply_model_a_force(self.force_map, self.h0_map, Pm_G,  eps_G)  * self.force_scale_G
             
             # H0 Cutoff (変更なし)
             if self.h0_map is not None:
-                h0_DF, h0_F, h0_G = self.h0_map(P_DF), self.h0_map(P_F), self.h0_map(P_G)
+                h0_DF, h0_F, h0_G = self.h0_map(Pm_DF), self.h0_map(Pm_F), self.h0_map(Pm_G)
                 F_DF = torch.where(eps_DF <= h0_DF, F_DF, torch.zeros_like(F_DF))
                 F_F  = torch.where(eps_F  <= h0_F,  F_F,  torch.zeros_like(F_F))
                 F_G  = torch.where(eps_G  <= h0_G,  F_G,  torch.zeros_like(F_G))
@@ -315,9 +351,9 @@ class TorqueActionController(ActionController):
                     pressure=P_G, shrink_gain=self.pressure_shrink_gain, clamp=False, sign=SIGN_G)
 
             # 2. 静的力 (Map直引き)
-            F_DF_static = self.force_map(P_DF, h_DF) * self.force_scale_DF
-            F_F_static  = self.force_map(P_F,  h_F)  * self.force_scale_F
-            F_G_static  = self.force_map(P_G,  h_G)  * self.force_scale_G
+            F_DF_static = self.force_map(Pm_DF, h_DF) * self.force_scale_DF
+            F_F_static  = self.force_map(Pm_F,  h_F)  * self.force_scale_F
+            F_G_static  = self.force_map(Pm_G,  h_G)  * self.force_scale_G
 
             # 3. 収縮速度 (deg2rad不要)
             def calculate_h_dot(dq_rad, r, sign, L0):
@@ -387,7 +423,7 @@ class TorqueActionController(ActionController):
 
             # Soft Engagement (変更なし)
             if self.h0_map is not None:
-                h0_DF, h0_F, h0_G = self.h0_map(P_DF), self.h0_map(P_F), self.h0_map(P_G)
+                h0_DF, h0_F, h0_G = self.h0_map(Pm_DF), self.h0_map(Pm_F), self.h0_map(Pm_G)
             
             F_DF = apply_soft_engagement(F_DF_total_raw, h_DF, h0_DF, self.transition_width)
             F_F  = apply_soft_engagement(F_F_total_raw,  h_F,  h0_F,  self.transition_width)
