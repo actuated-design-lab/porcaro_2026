@@ -149,6 +149,7 @@ class Porcaro2026Env(DirectRLEnv):
             pam_hys_play_weights=getattr(ctrl_cfg, "pam_hys_play_weights", None),
             pam_hys_play_widths_h=getattr(ctrl_cfg, "pam_hys_play_widths_h", (0.003,)),
             pam_engage_width_deg=getattr(ctrl_cfg, "pam_engage_width_deg", (0.0, 0.0, 0.0)),
+            pam_map_play_w=getattr(ctrl_cfg, "pam_map_play_w", 0.0),
             **controller_kwargs,
         )
         self.action_controller.reset(self.num_envs, self.device)
