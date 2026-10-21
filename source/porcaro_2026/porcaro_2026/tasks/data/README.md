@@ -2,7 +2,8 @@
 
 sim（`common/actions/torque.py`）は 2 つの表で PAM の発揮力を決める。
 
-- **力マップ**（`pam_force_map*.csv`）：行 = 内圧 P [MPa]、列 = 収縮率 h [%]（自然長 150 mm に対する縮み、負は伸び）、値 = 力 [N]
+- **力マップ**（`pam_force_map*.csv`）：行 = 内圧 P [MPa]、列 = 収縮率 h [%]（自然長 150 mm に対する縮み、負は伸び）、値 = 力 [N]。
+  行・列の刻みはファイルごとに違ってよい（sim は読んだ軸のまま使う）
 - **自由収縮マップ**（`pam_force_0_map*.csv`）：行 = 内圧 P、列 = 荷重 [N]（0〜620、20 刻み）、値 = その荷重で釣り合う収縮率 [%]。
   sim が使うのは列 0 N（自由収縮 h0）だけで、h > h0 で力を 0 にする（ワイヤのたるみ）
 
@@ -14,7 +15,7 @@ sim（`common/actions/torque.py`）は 2 つの表で PAM の発揮力を決め�
 |---|---|---|---|
 | `pam_force_map.csv`<br>`pam_force_0_map.csv` | **旧（カタログ）**。Festo DMSP-10-100N のカタログ値を読み取ったもの | `force_scale = 0.2` | 今の既定（RA-L 投稿版・JFPS 2026 の結果はこれ） |
 | `pam_force_map_caliper.csv`<br>`pam_force_0_map_caliper.csv` | 暫定（10/14）。カタログを、初期にノギスで測った自由収縮に合わせて横に縮めたもの（PR #33、`analysis/eval/make_caliper_map.py`） | `force_scale = 0.2` | 実測マップに置き換え。使わない |
-| `pam_force_map_measured.csv`<br>`pam_force_0_map_measured.csv` | **新（実測）**。PAM 単体試験（2026/10/20、ロボットから外した DF の筋）の等尺性・等張性から作ったもの（`analysis/eval/make_measured_map.py`） | **`force_scale = 1.0`** | これから使う。既定はまだ旧のまま |
+| `pam_force_map_measured.csv`<br>`pam_force_0_map_measured.csv` | **新（実測）**。PAM 単体試験（2026/10/20、**予備の筋**。ロボットには付いていない新しめのもの。データのファイル名の `DF_robot` は誤り）の等尺性・等張性から作ったもの（`analysis/eval/make_measured_map.py`） | **`force_scale = 1.0`** | これから使う。既定はまだ旧のまま |
 
 ## 旧（カタログ × 0.2）と新（実測）の違い
 
@@ -40,7 +41,14 @@ sim（`common/actions/torque.py`）は 2 つの表で PAM の発揮力を決め�
   630 N で頭打ちにし、0 MPa のカタログを下回らないようにした。手首を下げたとき（DF は手首 −20° で約 −4 %）に効くので、
   ここが効く動作では注意
 - **0.7・0.8 MPa は外挿**（0.5→0.6 MPa の変化を延ばした）。ITV は 0.6 MPa までなので sim では使わない
-- 測った筋は DF の 1 本、1 日分。F・G は測っていない（3 本とも同じマップを使う）
+- **行は 0.025 MPa 刻み、列は 0.5 % 刻み**（旧は 0.1 MPa・1 %）。測ったのは 0.1 刻みの 6 段なので、間の行は補間：
+  h ≥ 0 は曲線を h / h0(P) でそろえて両隣の行から作る（どの圧力でも力がちょうど h0(P) で 0 になる）。h0(P) は
+  測った点を単調な 3 次（PCHIP）でつないだもの。h < 0 は同じ収縮率どうしで直線補間
+- sim は表を双 3 次スプラインで 128 × 128 に細かくしてから双線形で引き、h > h0 で力を 0 にする。表が粗いと h0 の手前に
+  力が残って 0 に段差で落ちる（旧の行・列のままだと 1〜5 N）。今の表でも sim の格子（収縮 0.3 % 刻み）のせいで
+  最大 2.8 N 残るので、**`transition_width` を 0.003（0.3 %）にする**と段差がなくなる（h0 の手前 0.3 % で力を 0 へ直線に絞る）
+- 測った筋は**予備の 1 本**、1 日分。ロボットに付いている筋（使い込んだもの）はこれより縮みにくい：ロボットの DF は同じ荷重なら
+  約 0.6 倍しか縮まない。静的なつり合いには、収縮率の方向に k 倍縮めると合う（DF 0.56、F 0.75、`analysis/eval/static_fit_measured.py`、PR #39）
 - 内圧は試験機の G の圧力センサで測った（DF のセンサが故障）。0.6 MPa の段の実測は 0.59〜0.60 MPa
 - 等張性の吊り具の重さは 0 として扱った
 - ヒステリシス：長さのヒステリシスが大きい（等張性 0 kg で、上げ・下げの収縮率の差が最大 3.1 %、圧力の幅で 25〜70 kPa）。
@@ -55,7 +63,7 @@ sim（`common/actions/torque.py`）は 2 つの表で PAM の発揮力を決め�
 python scripts/tools/user0/jfps2026/replay_open_loop.py ... --ctrl '{
   "force_map_csv": "source/porcaro_2026/porcaro_2026/tasks/data/pam_force_map_measured.csv",
   "h0_map_csv":    "source/porcaro_2026/porcaro_2026/tasks/data/pam_force_0_map_measured.csv",
-  "force_scale": 1.0}'
+  "force_scale": 1.0, "transition_width": 0.003}'
 ```
 
 既定を新マップに切り替えるのは、静的な試験（10/14 の共収縮・id_static_F_taut）と tm_B・tm_C の再生で確かめてから。
